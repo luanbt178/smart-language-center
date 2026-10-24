@@ -150,9 +150,11 @@ export default async function DashboardPage() {
                         ? "/admin/users"
                         : slug === "leads"
                             ? "/sales/leads"
-                            : slug === "courses"
-                                ? "/catalog"
-                                : `/features/${slug}`
+                            : slug === "placement"
+                                ? "/sales/placement"
+                                : slug === "courses"
+                                    ? "/catalog"
+                                    : `/features/${slug}`
                 }
                 className="rounded-lg border border-slate-300 bg-white p-5 text-slate-900 hover:border-blue-500 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
               >
