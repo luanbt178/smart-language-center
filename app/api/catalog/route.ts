@@ -572,7 +572,7 @@ export async function POST(request: Request) {
       if (
         !code ||
         !name ||
-        !validText(body.code, 0, true) ||
+        !validText(body.code, 20, true) ||
         !validText(body.name, 100, true) ||
         !validText(body.description, 10000)
       ) {
