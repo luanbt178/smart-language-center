@@ -10,7 +10,7 @@ export default function LoginPage() {
     useState("");
 
   const [password, setPassword] =
-    useState("123456");
+    useState("")
 
   const [error, setError] =
     useState("");
@@ -132,11 +132,7 @@ export default function LoginPage() {
               ? "Đang đăng nhập..."
               : "Đăng nhập"}
           </button>
-        </form>
-
-        <div className="mt-6 border-t pt-4 text-xs text-gray-500">
-          Demo: admin / 123456
-        </div>
+        </form>    
       </div>
     </main>
   );

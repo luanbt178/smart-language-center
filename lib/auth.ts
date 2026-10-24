@@ -3,9 +3,15 @@ import "server-only";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 
-const secret = new TextEncoder().encode(
-  process.env.AUTH_SECRET!,
-);
+const authSecret = process.env.AUTH_SECRET;
+
+if (!authSecret || authSecret.length < 32) {
+  throw new Error(
+    "Thiếu AUTH_SECRET trong .env (cần tối thiểu 32 ký tự).",
+  );
+}
+
+const secret = new TextEncoder().encode(authSecret);
 
 export type SessionPayload = {
   userId: string;

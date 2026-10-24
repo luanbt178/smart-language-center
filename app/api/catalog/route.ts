@@ -513,10 +513,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const userId = BigInt(auth.session.userId);
-
-    const status =
-      normalizeStatus(body.status) ?? "DRAFT";
+    const userId = BigInt(auth.session.userId);   
 
     let newId: bigint;
 
@@ -575,7 +572,7 @@ export async function POST(request: Request) {
       if (
         !code ||
         !name ||
-        !validText(body.code, 30, true) ||
+        !validText(body.code, 0, true) ||
         !validText(body.name, 100, true) ||
         !validText(body.description, 10000)
       ) {
@@ -627,8 +624,8 @@ export async function POST(request: Request) {
         !validId(languageIdText) ||
         !code ||
         !name ||
-        !validText(body.code, 50, true) ||
-        !validText(body.name, 150, true) ||
+        !validText(body.code, 20, true) ||
+        !validText(body.name, 100, true) ||
         !validText(body.description, 10000)
       ) {
         return NextResponse.json(
@@ -1122,7 +1119,7 @@ export async function POST(request: Request) {
 
     // Mã trùng hoặc vi phạm UNIQUE.
     if (
-      /Duplicate entry|Unique constraint|1062|UniqueConstraintViolation/i.test(
+      /Duplicate entry|Unique constraint|UniqueConstraintViolation/i.test(
         message,
       )
     ) {

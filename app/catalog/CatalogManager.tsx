@@ -347,7 +347,11 @@ export default function CatalogManager({
   }, []);
 
   useEffect(() => {
-    void loadData();
+    const fetchData = async () => {
+      await loadData();
+    };
+    
+    fetchData();
   }, [loadData]);
 
   async function create(

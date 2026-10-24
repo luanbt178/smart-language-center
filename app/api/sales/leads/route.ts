@@ -309,6 +309,31 @@ export async function POST(request: Request) {
       );
     }
 
+        // Chặn trùng khách hàng cùng chi nhánh (theo SĐT hoặc email).
+    if (phone || email) {
+      const duplicates = await prisma.$queryRaw<
+        Array<{ id: bigint; full_name: string }>
+      >`
+        SELECT id, full_name
+        FROM leads
+        WHERE branch_id = ${branchId}
+          AND (
+            (${phone || ""} <> '' AND phone = ${phone || ""})
+            OR (${email || ""} <> '' AND email = ${email || ""})
+          )
+        LIMIT 1
+      `;
+
+      if (duplicates.length > 0) {
+        return NextResponse.json(
+          {
+            error: `Khách hàng đã tồn tại: ${duplicates[0].full_name} (trùng số điện thoại hoặc email).`,
+          },
+          { status: 409 },
+        );
+      }
+    }
+
     let assignedUserId: bigint | null = null;
 
     if (assignedIdText) {

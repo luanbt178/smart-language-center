@@ -119,6 +119,7 @@ model branches {
   id                 BigInt               @id @default(autoincrement())
   organization_id    BigInt
   code               String               @db.VarChar(150)
+  name               String               @db.VarChar(150)
   address            String?              @db.VarChar(255)
   phone              String?              @db.VarChar(30)
   status             String               @db.VarChar(30)
