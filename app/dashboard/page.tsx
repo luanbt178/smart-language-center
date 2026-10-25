@@ -167,6 +167,11 @@ export default async function DashboardPage() {
                                     ? "/classes"
                                   : slug === "attendance"
                                     ? "/attendance"
+                                  : slug === "invoices" ||
+                                      slug === "payments" ||
+                                      slug === "receivables" ||
+                                      slug === "revenue"
+                                    ? "/payments"
                                   : slug === "courses"
                                     ? "/catalog"
                                     : `/features/${slug}`

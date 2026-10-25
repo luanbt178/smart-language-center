@@ -96,6 +96,7 @@ export async function PATCH(
         FROM payments p
         INNER JOIN invoices i ON i.id = p.invoice_id
         WHERE i.enrollment_id = ${enrollmentId}
+          AND p.status = 'COMPLETED'
       `;
 
       if (Number(payments[0].total) > 0) {

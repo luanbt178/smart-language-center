@@ -55,6 +55,7 @@ const statusLabels: Record<string, string> = {
 
 const invoiceLabels: Record<string, string> = {
   ISSUED: "Chờ thanh toán",
+  PARTIAL: "Đã trả một phần",
   PAID: "Đã thanh toán",
   CANCELLED: "Đã hủy",
 };
