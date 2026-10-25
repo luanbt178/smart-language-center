@@ -13,6 +13,7 @@ const menus = {
   MANAGER: [
     ["Báo cáo", "REPORT_VIEW", "reports"],
     ["Học viên","STUDENT_VIEW", "students"],
+    ["Ghi danh", "ENROLLMENT_VIEW", "enrollments"],
     ["Lớp học", "CLASS_VIEW", "classes"],
     ["Doanh thu", "INVOICE_VIEW", "revenue"],
     ["Công nợ", "RECEIVABLE_VIEW", "receivables"],
@@ -22,12 +23,14 @@ const menus = {
     ["Lead", "LEAD_VIEW", "leads"],
     ["Placement Test", "PLACEMENT_VIEW", "placement"],
     ["Học viên", "STUDENT_VIEW", "students"],
+    ["Ghi danh", "ENROLLMENT_VIEW", "enrollments"],
     ["Khóa học", "COURSE_VIEW", "courses"],
   ],
 
   ACADEMIC: [
     ["Khóa học", "COURSE_VIEW", "courses"],
     ["Học viên", "STUDENT_VIEW", "students"],
+    ["Ghi danh", "ENROLLMENT_VIEW", "enrollments"],
     ["Lớp học", "CLASS_VIEW", "classes"],
     ["Xếp lịch", "SCHEDULE_VIEW", "schedules"],
     ["Điểm danh", "ATTENDANCE_VIEW", "attendance"],
@@ -156,6 +159,8 @@ export default async function DashboardPage() {
                                 ? "/sales/placement"
                                 : slug === "students"
                                   ? "/students"
+                                  : slug === "enrollments"
+                                  ? "/enrollments"
                                   : slug === "courses"
                                     ? "/catalog"
                                     : `/features/${slug}`

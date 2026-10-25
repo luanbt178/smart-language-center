@@ -269,6 +269,48 @@ const permissions = [
   },
 
   {
+    code: "STUDENT_VIEW",
+    name: "Xem học viên",
+    module: "STUDENT",
+    action: "VIEW",
+    description: "Xem danh sách học viên",
+  },
+  {
+    code: "STUDENT_CREATE",
+    name: "Thêm học viên",
+    module: "STUDENT",
+    action: "CREATE",
+    description: "Thêm học viên hoặc chuyển từ khách hàng",
+  },
+  {
+    code: "STUDENT_UPDATE",
+    name: "Sửa học viên",
+    module: "STUDENT",
+    action: "UPDATE",
+    description: "Sửa hồ sơ học viên",
+  },
+  {
+    code: "ENROLLMENT_VIEW",
+    name: "Xem ghi danh",
+    module: "ENROLLMENT",
+    action: "VIEW",
+    description: "Xem danh sách ghi danh",
+  },
+  {
+    code: "ENROLLMENT_CREATE",
+    name: "Ghi danh học viên",
+    module: "ENROLLMENT",
+    action: "CREATE",
+    description: "Ghi danh học viên và tạo hóa đơn",
+  },
+  {
+    code: "ENROLLMENT_UPDATE",
+    name: "Hủy ghi danh",
+    module: "ENROLLMENT",
+    action: "UPDATE",
+    description: "Hủy ghi danh và hóa đơn chưa thanh toán",
+  },
+  {
     code: "AI_USE",
     name: "Sử dụng AI",
     module: "AI",
@@ -281,6 +323,8 @@ const rolePermissionMap: Record<string, string[]> = {
   ADMIN: permissions.map((p) => p.code),
 
   MANAGER: [
+    "STUDENT_VIEW",
+    "ENROLLMENT_VIEW",
     "REPORT_VIEW",
     "LEAD_VIEW",
     "COURSE_VIEW",
@@ -293,6 +337,11 @@ const rolePermissionMap: Record<string, string[]> = {
   ],
 
   SALES: [
+    "STUDENT_VIEW",
+    "STUDENT_CREATE",
+    "STUDENT_UPDATE",
+    "ENROLLMENT_VIEW",
+    "ENROLLMENT_CREATE",
     "LEAD_VIEW",
     "LEAD_CREATE",
     "LEAD_UPDATE",
@@ -302,6 +351,12 @@ const rolePermissionMap: Record<string, string[]> = {
   ],
 
   ACADEMIC: [
+    "STUDENT_VIEW",
+    "STUDENT_CREATE",
+    "STUDENT_UPDATE",
+    "ENROLLMENT_VIEW",
+    "ENROLLMENT_CREATE",
+    "ENROLLMENT_UPDATE",
     "COURSE_VIEW",
     "COURSE_CREATE",
     "CLASS_VIEW",
@@ -326,6 +381,7 @@ const rolePermissionMap: Record<string, string[]> = {
   ],
 
   ACCOUNTANT: [
+    "ENROLLMENT_VIEW",
     "INVOICE_VIEW",
     "PAYMENT_CREATE",
     "RECEIVABLE_VIEW",
