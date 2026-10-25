@@ -167,6 +167,17 @@ export default async function DashboardPage() {
                                     ? "/classes"
                                   : slug === "attendance"
                                     ? "/attendance"
+                                  : slug === "reports"
+                                    ? "/reports"
+                                  : slug === "children" ||
+                                      slug === "children-schedule" ||
+                                      slug === "children-attendance" ||
+                                      slug === "my-attendance" ||
+                                      (slug === "my-schedule" &&
+                                        session.role !== "TEACHER")
+                                    ? "/portal"
+                                  : slug === "my-schedule"
+                                    ? "/classes"
                                   : slug === "invoices" ||
                                       slug === "payments" ||
                                       slug === "receivables" ||
