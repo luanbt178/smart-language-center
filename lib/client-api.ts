@@ -3,7 +3,7 @@ export type ApiResult = { ok: boolean; message: string };
 
 export async function callApi(
   url: string,
-  method: "POST" | "PATCH" | "DELETE",
+  method: "POST" | "PATCH" | "PUT" | "DELETE",
   body?: unknown,
 ): Promise<ApiResult> {
   try {

@@ -165,6 +165,8 @@ export default async function DashboardPage() {
                                       slug === "schedules" ||
                                       slug === "my-classes"
                                     ? "/classes"
+                                  : slug === "attendance"
+                                    ? "/attendance"
                                   : slug === "courses"
                                     ? "/catalog"
                                     : `/features/${slug}`
