@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import Link from "next/link";
+import { ASSESSMENT_TYPE_LABELS } from "@/lib/assessments";
 
 type Child = {
   id: string;
@@ -30,6 +31,15 @@ type Child = {
     className: string;
     status: string;
     note: string | null;
+  }>;
+  results: Array<{
+    name: string;
+    type: string | null;
+    className: string;
+    date: string;
+    score: string;
+    maxScore: string;
+    feedback: string | null;
   }>;
   invoices: Array<{
     invoiceNo: string;
@@ -220,6 +230,29 @@ export default function PortalView({ isParent }: { isParent: boolean }) {
                       ))}
                     </ul>
                   </>
+                )}
+              </div>
+              
+<div>
+                <h3 className="mb-2 font-semibold">Kết quả học tập</h3>
+                {child.results.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    Chưa có kết quả nào được công bố.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-slate-200 text-sm">
+                    {child.results.map((r, index) => (
+                      <li key={index} className="py-2">
+                        {r.date} · <strong>{r.name}</strong> (
+                        {ASSESSMENT_TYPE_LABELS[r.type ?? ""] ?? r.type ?? "-"}
+                        ) · {r.className} · Điểm{" "}
+                        <strong>
+                          {r.score}/{r.maxScore}
+                        </strong>
+                        {r.feedback ? ` · ${r.feedback}` : ""}
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
 
