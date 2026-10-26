@@ -31,14 +31,6 @@ type SalesUserRow = {
   branch_ids: string | null;
 };
 
-const leadStatuses = [
-  "NEW",
-  "CONTACTED",
-  "QUALIFIED",
-  "CONVERTED",
-  "LOST",
-] as const;
-
 function textField(
   value: unknown,
   maxLength: number,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 
 type Item = {
@@ -37,19 +37,9 @@ const emptyCatalog: Catalog = {
   branches: [],
 };
 
-const inputClass =
-  "w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900";
-
-const labelClass = "mb-1 block text-sm font-medium text-slate-800";
 
 const buttonClass =
   "rounded-md bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60";
-
-const statusOptions = [
-  ["DRAFT", "Bản nháp"],
-  ["ACTIVE", "Hoạt động"],
-  ["ARCHIVED", "Lưu trữ"],
-];
 
 type TableCell = string | number | null | undefined;
 

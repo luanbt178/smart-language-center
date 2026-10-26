@@ -56,7 +56,13 @@ function money(value: string): string {
     : value;
 }
 
-export default function PaymentsManager({ canPay }: { canPay: boolean }) {
+export default function PaymentsManager({
+  canPay,
+  today,
+}: {
+  canPay: boolean;
+  today: string;
+}) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -160,9 +166,6 @@ export default function PaymentsManager({ canPay }: { canPay: boolean }) {
     return { billed, paid, remaining };
   }, [invoices]);
 
-  const today = new Date(Date.now() + 7 * 3600 * 1000)
-    .toISOString()
-    .slice(0, 10);
 
   function startPaying(row: Invoice) {
     setPayingId(row.id);

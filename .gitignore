@@ -44,4 +44,7 @@ next-env.d.ts
 .next/
 *.bak
 
+.claude/
+.windsurf/
+
 /app/generated/prisma

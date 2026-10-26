@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { todayVN } from "@/lib/dates";
 
 import { getCurrentSession } from "@/lib/auth";
 import PaymentsManager from "./PaymentsManager";
@@ -30,9 +31,10 @@ export default async function PaymentsPage() {
     );
   }
 
-  return (
+   return (
     <PaymentsManager
       canPay={session.permissions.includes("PAYMENT_CREATE")}
+      today={todayVN()}
     />
   );
 }

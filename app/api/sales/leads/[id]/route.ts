@@ -206,7 +206,7 @@ export async function PATCH(
       }
     }
 
-    const affected = await prisma.$executeRaw`
+    await prisma.$executeRaw`
       UPDATE leads
       SET
         full_name = ${fullName},
