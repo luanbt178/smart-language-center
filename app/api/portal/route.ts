@@ -170,6 +170,35 @@ export async function GET() {
         ORDER BY i.id DESC
       `;
 
+            // Chỉ hiện kết quả của các bài đã được công bố.
+      const gradedResults = await prisma.$queryRaw<
+        Array<{
+          name: string;
+          type: string | null;
+          class_name: string;
+          scheduled_date: string;
+          score: string;
+          max_score: string;
+          feedback: string | null;
+        }>
+      >`
+        SELECT
+          a.name,
+          a.type,
+          c.name AS class_name,
+          DATE_FORMAT(a.scheduled_at, '%Y-%m-%d') AS scheduled_date,
+          CAST(r.score AS CHAR) AS score,
+          CAST(a.max_score AS CHAR) AS max_score,
+          r.feedback
+        FROM assessment_attempts t
+        INNER JOIN assessments a ON a.id = t.assessment_id
+        INNER JOIN classes c ON c.id = a.class_id
+        INNER JOIN assessment_results r ON r.attempt_id = t.id
+        WHERE t.student_id = ${student.id} AND a.status = 'PUBLISHED'
+        ORDER BY a.scheduled_at DESC
+        LIMIT 20
+      `;
+
       const counts: Record<string, number> = {};
 
       for (const row of summary) {
@@ -202,6 +231,15 @@ export async function GET() {
           className: row.class_name,
           status: row.status,
           note: row.note,
+        })),
+        results: gradedResults.map((row) => ({
+          name: row.name,
+          type: row.type,
+          className: row.class_name,
+          date: row.scheduled_date,
+          score: row.score,
+          maxScore: row.max_score,
+          feedback: row.feedback,
         })),
         invoices: invoices.map((row) => ({
           invoiceNo: row.invoice_no,

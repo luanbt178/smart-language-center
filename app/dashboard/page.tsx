@@ -169,8 +169,12 @@ export default async function DashboardPage() {
                                     ? "/attendance"
                                   : slug === "reports"
                                     ? "/reports"
+                                  : slug === "assessments"
+                                    ? "/assessments"
                                   : slug === "children" ||
                                       slug === "children-schedule" ||
+                                      slug === "children-results" ||
+                                      slug === "my-results" ||
                                       slug === "children-attendance" ||
                                       slug === "my-attendance" ||
                                       (slug === "my-schedule" &&
@@ -181,7 +185,8 @@ export default async function DashboardPage() {
                                   : slug === "invoices" ||
                                       slug === "payments" ||
                                       slug === "receivables" ||
-                                      slug === "revenue"
+                                      slug === "revenue" ||
+                                      slug === "children-fees"
                                     ? "/payments"
                                   : slug === "courses"
                                     ? "/catalog"
