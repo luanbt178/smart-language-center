@@ -3,7 +3,10 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { MainLayout } from "@/components/layout/MainLayout"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-inter",
+})
 
 export const metadata: Metadata = {
   title: "Smart Language Center AI",
@@ -17,10 +20,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi">
-      <body className={inter.className}>
-        <MainLayout>
-          {children}
-        </MainLayout>
+      <body className={`${inter.variable} font-sans antialiased`}>
+        <MainLayout>{children}</MainLayout>
       </body>
     </html>
   )

@@ -1,19 +1,30 @@
-// app/api/auth/me/route.ts
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { NextResponse } from "next/server"
 
+import { getCurrentSession } from "@/lib/auth"
+
+// Trả về thông tin người dùng đang đăng nhập (đọc từ JWT trong cookie).
 export async function GET() {
-  // Đọc cookie (thường được lưu dưới tên 'session' hoặc 'token')
-  const cookieStore = await cookies();
-  const sessionData = cookieStore.get('session')?.value;
-  
-  if (!sessionData) return NextResponse.json({ error: "No session" }, { status: 401 });
+  const session = await getCurrentSession()
 
-  try {
-    // Giải mã JSON từ cookie để lấy role
-    const parsed = JSON.parse(sessionData);
-    return NextResponse.json({ role: parsed.role });
-  } catch (error) {
-    return NextResponse.json({ error: "Invalid session" }, { status: 400 });
+  if (!session) {
+    return NextResponse.json(
+      { error: "Bạn cần đăng nhập." },
+      { status: 401 },
+    )
   }
+
+  return NextResponse.json(
+    {
+      role: session.role,
+      user: {
+        userId: session.userId,
+        username: session.username,
+        fullName: session.fullName,
+        role: session.role,
+        roleName: session.roleName,
+        permissions: session.permissions,
+      },
+    },
+    { headers: { "Cache-Control": "no-store" } },
+  )
 }

@@ -6,40 +6,33 @@ import { usePathname } from "next/navigation"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "./AppSidebar"
 import { AppHeader } from "./AppHeader"
+import { CurrentUserProvider } from "./CurrentUserProvider"
 
-type MainLayoutProps = {
-  children: ReactNode
-}
-
-export function MainLayout({ children }: MainLayoutProps) {
+export function MainLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
 
-  // Không hiển thị sidebar và header trên trang đăng nhập
-  // hoặc trang chủ.
+  // Trang đăng nhập và trang chủ không có sidebar/header.
   const isAuthPage = pathname === "/login" || pathname === "/"
 
   if (isAuthPage) {
-    return (
-      <main className="min-h-screen bg-slate-50">
-        {children}
-      </main>
-    )
+    return <div className="min-h-screen bg-slate-50">{children}</div>
   }
 
   return (
-    <SidebarProvider className="min-h-svh w-full">
-      <AppSidebar />
+    <CurrentUserProvider>
+      <SidebarProvider className="min-h-svh w-full">
+        <AppSidebar />
 
-      <main className="flex h-svh min-w-0 flex-1 flex-col overflow-hidden bg-slate-50">
-        <AppHeader />
+        <div className="flex h-svh min-w-0 flex-1 flex-col overflow-hidden bg-slate-50">
+          <AppHeader />
 
-        {/* Vùng cuộn nội dung chính */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-7xl p-4 md:p-6 lg:p-8">
-            {children}
-          </div>
+          <main className="min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-7xl p-4 md:p-6 lg:p-8">
+              {children}
+            </div>
+          </main>
         </div>
-      </main>
-    </SidebarProvider>
+      </SidebarProvider>
+    </CurrentUserProvider>
   )
 }
