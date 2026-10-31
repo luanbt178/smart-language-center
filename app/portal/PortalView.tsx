@@ -104,7 +104,7 @@ export default function PortalView({ isParent }: { isParent: boolean }) {
   }, [load]);
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4 text-slate-900 sm:p-6">
+    <div className="text-slate-900">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white p-5">
           <div>
@@ -278,6 +278,6 @@ export default function PortalView({ isParent }: { isParent: boolean }) {
           );
         })}
       </div>
-    </main>
+    </div>
   );
 }
