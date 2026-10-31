@@ -8,7 +8,12 @@ import {
   useState,
 } from "react";
 
-import Link from "next/link";
+import { Notice } from "@/components/shared/Notice";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatCard } from "@/components/shared/StatCard";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, CircleAlert, ClipboardList, Clock, RefreshCw } from "lucide-react";
 
 type TestStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED";
 
@@ -67,19 +72,6 @@ const statusLabels: Record<string, string> = {
   COMPLETED: "Đã có kết quả",
   CANCELLED: "Đã hủy",
 };
-
-function statusClass(status: string) {
-  switch (status) {
-    case "SCHEDULED":
-      return "border-amber-300 bg-amber-50 text-amber-900";
-    case "COMPLETED":
-      return "border-green-300 bg-green-50 text-green-800";
-    case "CANCELLED":
-      return "border-red-300 bg-red-50 text-red-800";
-    default:
-      return "border-slate-300 bg-slate-100 text-slate-800";
-  }
-}
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -284,55 +276,40 @@ export default function PlacementManager({
   }
 
   const inputClass =
-    "w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900";
+    "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30";
 
   return (
     <div className="text-slate-900">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white p-5">
-          <div>
-            <h1 className="text-2xl font-bold">
-              Kiểm tra đầu vào (Placement Test)
-            </h1>
-
-            <p className="mt-1 text-sm text-slate-600">
-              Sales — đặt lịch, nhập điểm, đề xuất trình độ
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <button
+        <PageHeader
+          title="Kiểm tra đầu vào (Placement Test)"
+          description="Đặt lịch, nhập điểm và đề xuất trình độ cho khách hàng tiềm năng."
+          actions={
+            <Button
               type="button"
+              variant="outline"
               onClick={() => void loadData()}
               disabled={loading}
-              className="rounded-md border border-slate-400 bg-white px-4 py-2 font-medium text-slate-800 hover:bg-slate-100 disabled:opacity-60"
             >
+              <RefreshCw />
               {loading ? "Đang tải..." : "Tải lại"}
-            </button>
+            </Button>
+          }
+        />
 
-            <Link
-              href="/dashboard"
-              className="rounded-md bg-slate-800 px-4 py-2 font-semibold text-white hover:bg-slate-900"
-            >
-              Dashboard
-            </Link>
-          </div>
-        </header>
+        <Notice notice={notice} onClose={() => setNotice(null)} />
 
-        {notice && (
-          <div
-            className={`rounded-md border p-3 text-sm ${
-              notice.type === "success"
-                ? "border-green-300 bg-green-50 text-green-900"
-                : "border-red-300 bg-red-50 text-red-900"
-            }`}
-          >
-            {notice.text}
+        {!loading && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Tổng số bài kiểm tra" value={tests.length} icon={ClipboardList} tone="blue" />
+            <StatCard label="Đã lên lịch" value={tests.filter((test) => test.status === "SCHEDULED").length} icon={Clock} tone="amber" />
+            <StatCard label="Đã có kết quả" value={tests.filter((test) => test.status === "COMPLETED").length} icon={CheckCircle2} tone="green" />
+            <StatCard label="Đã hủy" value={tests.filter((test) => test.status === "CANCELLED").length} icon={CircleAlert} tone="slate" />
           </div>
         )}
 
         {canCreate && (
-          <section className="rounded-lg border border-slate-300 bg-white p-5">
+          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold">
               Đặt lịch kiểm tra mới
             </h2>
@@ -382,7 +359,7 @@ export default function PlacementManager({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-md bg-blue-700 px-5 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+                  className="rounded-lg bg-blue-600 px-5 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   {saving ? "Đang lưu..." : "Đặt lịch"}
                 </button>
@@ -468,7 +445,7 @@ export default function PlacementManager({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-md bg-blue-700 px-5 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+                  className="rounded-lg bg-blue-600 px-5 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   {saving ? "Đang lưu..." : "Lưu kết quả"}
                 </button>
@@ -488,7 +465,7 @@ export default function PlacementManager({
           </section>
         )}
 
-        <section className="rounded-lg border border-slate-300 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">
               Danh sách bài kiểm tra ({filteredTests.length})
@@ -545,13 +522,10 @@ export default function PlacementManager({
                       <td className="p-3">{formatDate(test.testDate)}</td>
 
                       <td className="p-3">
-                        <span
-                          className={`rounded border px-2 py-1 text-xs font-medium ${statusClass(
-                            test.status,
-                          )}`}
-                        >
-                          {statusLabels[test.status] ?? test.status}
-                        </span>
+                        <StatusBadge
+                          status={test.status}
+                          label={statusLabels[test.status] ?? test.status}
+                        />
                       </td>
 
                       <td className="p-3">

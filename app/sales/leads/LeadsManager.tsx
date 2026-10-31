@@ -8,7 +8,12 @@ import {
   useState,
 } from "react";
 
-import Link from "next/link";
+import { Notice } from "@/components/shared/Notice";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatCard } from "@/components/shared/StatCard";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, CircleAlert, Clock, Users, RefreshCw } from "lucide-react";
 
 type LeadStatus =
   | "NEW"
@@ -82,28 +87,6 @@ function statusLabel(status: string) {
     statusOptions.find((item) => item.value === status)
       ?.label ?? status
   );
-}
-
-function statusClass(status: string) {
-  switch (status) {
-    case "NEW":
-      return "border-blue-300 bg-blue-50 text-blue-800";
-
-    case "CONTACTED":
-      return "border-amber-300 bg-amber-50 text-amber-900";
-
-    case "QUALIFIED":
-      return "border-indigo-300 bg-indigo-50 text-indigo-800";
-
-    case "CONVERTED":
-      return "border-green-300 bg-green-50 text-green-800";
-
-    case "LOST":
-      return "border-red-300 bg-red-50 text-red-800";
-
-    default:
-      return "border-slate-300 bg-slate-100 text-slate-800";
-  }
 }
 
 export default function LeadsManager() {
@@ -312,52 +295,36 @@ export default function LeadsManager() {
   return (
     <div className="text-slate-900">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white p-5">
-          <div>
-            <h1 className="text-2xl font-bold">
-              Quản lý khách hàng tiềm năng
-            </h1>
-
-            <p className="mt-1 text-sm text-slate-600">
-              Sales — Leads / CRM
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <button
+        <PageHeader
+          title="Quản lý khách hàng tiềm năng"
+          description="Theo dõi khách hàng tiềm năng từ lúc tiếp nhận đến khi chuyển đổi."
+          actions={
+            <Button
               type="button"
+              variant="outline"
               onClick={() => void loadData()}
               disabled={loading}
-              className="rounded-md border border-slate-400 bg-white px-4 py-2 font-medium text-slate-800 hover:bg-slate-100 disabled:opacity-60"
             >
+              <RefreshCw />
               Làm mới
-            </button>
+            </Button>
+          }
+        />
 
-            <Link
-              href="/dashboard"
-              className="rounded-md bg-slate-800 px-4 py-2 font-semibold text-white hover:bg-slate-900"
-            >
-              Dashboard
-            </Link>
-          </div>
-        </header>
+        <Notice notice={notice} onClose={() => setNotice(null)} />
 
-        {notice && (
-          <div
-            role="status"
-            className={
-              notice.type === "success"
-                ? "rounded-md border border-green-300 bg-green-50 p-3 text-green-900"
-                : "rounded-md border border-red-300 bg-red-50 p-3 text-red-900"
-            }
-          >
-            {notice.text}
+        {!loading && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Tổng số lead" value={leads.length} icon={Users} tone="blue" />
+            <StatCard label="Đang chăm sóc" value={leads.filter((lead) => ["NEW", "CONTACTED", "QUALIFIED"].includes(lead.status)).length} icon={Clock} tone="amber" />
+            <StatCard label="Đã chuyển đổi" value={leads.filter((lead) => lead.status === "CONVERTED").length} icon={CheckCircle2} tone="green" />
+            <StatCard label="Không tiếp tục" value={leads.filter((lead) => lead.status === "LOST").length} icon={CircleAlert} tone="slate" />
           </div>
         )}
 
         <section
           id="lead-form"
-          className="rounded-lg border border-slate-300 bg-white p-5"
+          className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
         >
           <h2 className="mb-4 text-lg font-semibold">
             {editingId ? "Cập nhật Lead" : "Thêm Lead mới"}
@@ -379,7 +346,7 @@ export default function LeadsManager() {
                 }
                 maxLength={150}
                 required
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
                 placeholder="Nguyễn Văn A"
               />
             </div>
@@ -395,7 +362,7 @@ export default function LeadsManager() {
                   updateForm("phone", event.target.value)
                 }
                 maxLength={30}
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
                 placeholder="0901234567"
               />
             </div>
@@ -412,7 +379,7 @@ export default function LeadsManager() {
                   updateForm("email", event.target.value)
                 }
                 maxLength={150}
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
                 placeholder="student@example.com"
               />
             </div>
@@ -427,7 +394,7 @@ export default function LeadsManager() {
                 onChange={(event) =>
                   updateForm("source", event.target.value)
                 }
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
               >
                 <option value="">Chưa xác định</option>
                 <option value="WEBSITE">Website</option>
@@ -456,7 +423,7 @@ export default function LeadsManager() {
                   }));
                 }}
                 required
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900 disabled:bg-slate-100"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 disabled:bg-slate-100"
               >
                 <option value="">
                   -- Chọn chi nhánh --
@@ -486,7 +453,7 @@ export default function LeadsManager() {
                     event.target.value,
                   )
                 }
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
               >
                 <option value="">Chưa phân công</option>
 
@@ -515,7 +482,7 @@ export default function LeadsManager() {
                       event.target.value as LeadStatus,
                     )
                   }
-                  className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
                 >
                   {statusOptions.map((status) => (
                     <option
@@ -537,7 +504,7 @@ export default function LeadsManager() {
                   loading ||
                   branches.length === 0
                 }
-                className="flex-1 rounded-md bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving
                   ? "Đang lưu..."
@@ -565,7 +532,7 @@ export default function LeadsManager() {
           )}
         </section>
 
-        <section className="rounded-lg border border-slate-300 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4">
             <h2 className="text-lg font-semibold">
               Danh sách Lead
@@ -588,7 +555,7 @@ export default function LeadsManager() {
                   setSearch(event.target.value)
                 }
                 placeholder="Họ tên, điện thoại, email, nguồn..."
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
               />
             </div>
 
@@ -602,7 +569,7 @@ export default function LeadsManager() {
                 onChange={(event) =>
                   setFilterStatus(event.target.value)
                 }
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
               >
                 <option value="ALL">Tất cả trạng thái</option>
 
@@ -674,11 +641,7 @@ export default function LeadsManager() {
                       </td>
 
                       <td className="p-3">
-                        <span
-                          className={`inline-block rounded border px-2 py-1 text-xs font-semibold ${statusClass(lead.status)}`}
-                        >
-                          {statusLabel(lead.status)}
-                        </span>
+                        <StatusBadge status={lead.status} label={statusLabel(lead.status)} />
                       </td>
 
                       <td className="whitespace-nowrap p-3 text-slate-600">

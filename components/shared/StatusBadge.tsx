@@ -31,6 +31,7 @@ const STATUS: Record<string, { label: string; tone: Tone }> = {
   EXCUSED: { label: "Có phép", tone: "blue" },
   NEW: { label: "Mới", tone: "blue" },
   CONTACTED: { label: "Đã liên hệ", tone: "amber" },
+  QUALIFIED: { label: "Tiềm năng phù hợp", tone: "blue" },
   CONVERTED: { label: "Đã chuyển đổi", tone: "green" },
   LOST: { label: "Đã mất", tone: "slate" },
 }
