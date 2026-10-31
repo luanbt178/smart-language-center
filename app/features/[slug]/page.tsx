@@ -110,7 +110,7 @@ export default async function FeaturePage({
 
   if (!allowed) {
     return (
-      <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
+      <div className="text-slate-900">
         <div className="mx-auto max-w-2xl rounded-lg border border-slate-300 bg-white p-8">
           <p className="text-sm font-semibold text-red-700">
             LỖI 403
@@ -139,12 +139,12 @@ export default async function FeaturePage({
             Quay lại Dashboard
           </Link>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
+    <div className="text-slate-900">
       <div className="mx-auto max-w-5xl">
         <header className="mb-6 rounded-lg border border-slate-300 bg-white p-6">
           <p className="text-sm text-slate-600">
@@ -200,6 +200,6 @@ export default async function FeaturePage({
           </Link>
         </section>
       </div>
-    </main>
+    </div>
   );
 }
