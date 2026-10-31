@@ -3,7 +3,7 @@ import "server-only";
 import { ApiError } from "@/lib/api-error";
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models";
-const TIMEOUT_MS = 15_000;
+const TIMEOUT_MS = 25_000;
 
 // Giới hạn đơn giản trong bộ nhớ: mỗi người dùng tối đa 20 yêu cầu / 10 phút.
 // (Khởi động lại máy chủ sẽ xóa bộ đếm; đủ dùng cho thực tập.)
