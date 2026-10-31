@@ -13,7 +13,7 @@ export default async function AttendancePage() {
 
   if (!session.permissions.includes("ATTENDANCE_VIEW")) {
     return (
-      <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
+      <div className="text-slate-900">
         <div className="mx-auto max-w-2xl rounded-lg border border-slate-300 bg-white p-8">
           <h1 className="text-xl font-bold">
             403 - Bạn không có quyền xem điểm danh
@@ -26,7 +26,7 @@ export default async function AttendancePage() {
             Quay lại Dashboard
           </Link>
         </div>
-      </main>
+      </div>
     );
   }
 

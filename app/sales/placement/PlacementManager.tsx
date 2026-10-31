@@ -279,7 +279,7 @@ export default function PlacementManager({
     "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30";
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4 text-slate-900 sm:p-6">
+    <div className="text-slate-900">
       <div className="mx-auto max-w-7xl space-y-6">
         <PageHeader
           title="Kiểm tra đầu vào (Placement Test)"
@@ -584,6 +584,6 @@ export default function PlacementManager({
           )}
         </section>
       </div>
-    </main>
+    </div>
   );
 }

@@ -1,13 +1,46 @@
 "use client";
 
 import {
-  FormEvent,
+  type FormEvent,
   useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react";
 import Link from "next/link";
+import {
+  CheckCircle2,
+  KeyRound,
+  Lock,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Users,
+} from "lucide-react";
+
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { FormField, inputClass } from "@/components/shared/FormField";
+import { Notice, type NoticeState } from "@/components/shared/Notice";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { TableCard } from "@/components/shared/Panel";
+import { StatCard } from "@/components/shared/StatCard";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+} from "@/components/shared/states";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { callApi } from "@/lib/client-api";
 
 type UserItem = {
   id: string;
@@ -21,37 +54,371 @@ type UserItem = {
   createdAt: string;
 };
 
-type RoleItem = {
-  code: string;
-  name: string;
-};
+type RoleItem = { code: string; name: string };
 
-type BranchItem = {
-  id: string;
-  code: string;
-  name: string;
-  status: string;
-};
+type BranchItem = { id: string; code: string; name: string; status: string };
 
-type FormState = {
-  username: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  password: string;
-  roleCode: string;
-  branchId: string;
-};
+type DialogState =
+  | { kind: "create" }
+  | { kind: "edit"; user: UserItem }
+  | { kind: "password"; user: UserItem }
+  | { kind: "status"; user: UserItem }
+  | null;
 
-const initialForm: FormState = {
-  username: "",
-  fullName: "",
-  email: "",
-  phone: "",
-  password: "",
-  roleCode: "STUDENT",
-  branchId: "",
-};
+/* ------------------------------ Tạo tài khoản ------------------------------ */
+
+function CreateUserForm({
+  roles,
+  branches,
+  onCancel,
+  onDone,
+}: {
+  roles: RoleItem[];
+  branches: BranchItem[];
+  onCancel: () => void;
+  onDone: (message: string) => void;
+}) {
+  const [form, setForm] = useState({
+    username: "",
+    fullName: "",
+    email: "",
+    phone: "",
+    password: "",
+    roleCode: "",
+    branchId: branches.length === 1 ? branches[0].id : "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function update(field: keyof typeof form, value: string) {
+    setForm((previous) => ({ ...previous, [field]: value }));
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+
+    const result = await callApi("/api/admin/users", "POST", form);
+
+    setSaving(false);
+
+    if (result.ok) {
+      onDone(result.message);
+    } else {
+      setError(result.message);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="grid gap-4">
+      {error && <Notice notice={{ type: "error", text: error }} />}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField label="Tên đăng nhập" htmlFor="new-username" required>
+          <input
+            id="new-username"
+            className={inputClass}
+            value={form.username}
+            onChange={(e) => update("username", e.target.value)}
+            minLength={3}
+            maxLength={100}
+            required
+            autoComplete="off"
+          />
+        </FormField>
+
+        <FormField label="Họ và tên" htmlFor="new-fullname" required>
+          <input
+            id="new-fullname"
+            className={inputClass}
+            value={form.fullName}
+            onChange={(e) => update("fullName", e.target.value)}
+            maxLength={150}
+            required
+          />
+        </FormField>
+
+        <FormField label="Email" htmlFor="new-email">
+          <input
+            id="new-email"
+            type="email"
+            className={inputClass}
+            value={form.email}
+            onChange={(e) => update("email", e.target.value)}
+            maxLength={150}
+          />
+        </FormField>
+
+        <FormField label="Số điện thoại" htmlFor="new-phone">
+          <input
+            id="new-phone"
+            className={inputClass}
+            value={form.phone}
+            onChange={(e) => update("phone", e.target.value)}
+            maxLength={30}
+          />
+        </FormField>
+
+        <FormField
+          label="Mật khẩu"
+          htmlFor="new-password"
+          required
+          hint="Tối thiểu 8 ký tự."
+        >
+          <input
+            id="new-password"
+            type="password"
+            className={inputClass}
+            value={form.password}
+            onChange={(e) => update("password", e.target.value)}
+            minLength={8}
+            required
+            autoComplete="new-password"
+          />
+        </FormField>
+
+        <FormField label="Vai trò" htmlFor="new-role" required>
+          <select
+            id="new-role"
+            className={inputClass}
+            value={form.roleCode}
+            onChange={(e) => update("roleCode", e.target.value)}
+            required
+          >
+            <option value="">-- Chọn vai trò --</option>
+            {roles.map((role) => (
+              <option key={role.code} value={role.code}>
+                {role.name} ({role.code})
+              </option>
+            ))}
+          </select>
+        </FormField>
+
+        <FormField
+          label="Chi nhánh"
+          htmlFor="new-branch"
+          required
+          className="sm:col-span-2"
+        >
+          <select
+            id="new-branch"
+            className={inputClass}
+            value={form.branchId}
+            onChange={(e) => update("branchId", e.target.value)}
+            required
+          >
+            <option value="">-- Chọn chi nhánh --</option>
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.name} ({branch.code})
+              </option>
+            ))}
+          </select>
+        </FormField>
+      </div>
+
+      {branches.length === 0 && (
+        <p className="text-sm text-red-700">
+          Chưa có chi nhánh đang hoạt động. Hãy kiểm tra dữ liệu bảng branches.
+        </p>
+      )}
+
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Hủy
+        </Button>
+        <Button
+          type="submit"
+          disabled={saving || roles.length === 0 || branches.length === 0}
+        >
+          {saving ? "Đang tạo..." : "Tạo tài khoản"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+/* ------------------------------ Sửa thông tin ------------------------------ */
+
+function EditUserForm({
+  user,
+  onCancel,
+  onDone,
+}: {
+  user: UserItem;
+  onCancel: () => void;
+  onDone: (message: string) => void;
+}) {
+  const [fullName, setFullName] = useState(user.fullName);
+  const [email, setEmail] = useState(user.email ?? "");
+  const [phone, setPhone] = useState(user.phone ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+
+    const result = await callApi(
+      `/api/admin/users/${encodeURIComponent(user.id)}/profile`,
+      "PATCH",
+      { fullName, email, phone },
+    );
+
+    setSaving(false);
+
+    if (result.ok) {
+      onDone(result.message);
+    } else {
+      setError(result.message);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="grid gap-4">
+      {error && <Notice notice={{ type: "error", text: error }} />}
+
+      <FormField label="Họ và tên" htmlFor="edit-fullname" required>
+        <input
+          id="edit-fullname"
+          className={inputClass}
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          maxLength={150}
+          required
+        />
+      </FormField>
+
+      <FormField
+        label="Email"
+        htmlFor="edit-email"
+        hint="Email dùng để liên kết tài khoản học viên/phụ huynh với hồ sơ. Đổi email có thể làm mất liên kết đó."
+      >
+        <input
+          id="edit-email"
+          type="email"
+          className={inputClass}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          maxLength={150}
+        />
+      </FormField>
+
+      <FormField label="Số điện thoại" htmlFor="edit-phone">
+        <input
+          id="edit-phone"
+          className={inputClass}
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          maxLength={30}
+        />
+      </FormField>
+
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Hủy
+        </Button>
+        <Button type="submit" disabled={saving}>
+          {saving ? "Đang lưu..." : "Lưu thay đổi"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+/* ----------------------------- Đặt lại mật khẩu ----------------------------- */
+
+const PASSWORD_CHARS =
+  "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+
+function generatePassword(): string {
+  const values = crypto.getRandomValues(new Uint32Array(12));
+
+  return Array.from(
+    values,
+    (value) => PASSWORD_CHARS[value % PASSWORD_CHARS.length],
+  ).join("");
+}
+
+function ResetPasswordForm({
+  user,
+  onCancel,
+  onDone,
+}: {
+  user: UserItem;
+  onCancel: () => void;
+  onDone: (message: string) => void;
+}) {
+  const [newPassword, setNewPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+
+    const result = await callApi(
+      `/api/admin/users/${encodeURIComponent(user.id)}/password`,
+      "POST",
+      { newPassword },
+    );
+
+    setSaving(false);
+
+    if (result.ok) {
+      onDone(result.message);
+    } else {
+      setError(result.message);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="grid gap-4">
+      {error && <Notice notice={{ type: "error", text: error }} />}
+
+      <FormField
+        label="Mật khẩu mới"
+        htmlFor="reset-password"
+        required
+        hint="Mật khẩu hiển thị để bạn gửi cho người dùng. Ít nhất 8 ký tự."
+      >
+        <div className="flex gap-2">
+          <input
+            id="reset-password"
+            className={inputClass}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            minLength={8}
+            required
+            autoComplete="off"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 shrink-0"
+            onClick={() => setNewPassword(generatePassword())}
+          >
+            Tạo ngẫu nhiên
+          </Button>
+        </div>
+      </FormField>
+
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Hủy
+        </Button>
+        <Button type="submit" disabled={saving}>
+          {saving ? "Đang lưu..." : "Đặt mật khẩu"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+/* --------------------------------- Trang chính --------------------------------- */
 
 export default function UsersManager({
   currentUsername,
@@ -62,22 +429,19 @@ export default function UsersManager({
   const [roles, setRoles] = useState<RoleItem[]>([]);
   const [branches, setBranches] = useState<BranchItem[]>([]);
 
-  const [form, setForm] = useState<FormState>(initialForm);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [roleFilter, setRoleFilter] = useState("ALL");
 
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [updatingId, setUpdatingId] = useState<string | null>(
-    null,
-  );
-
-  const [notice, setNotice] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<NoticeState>(null);
+  const [dialog, setDialog] = useState<DialogState>(null);
+  const [statusSaving, setStatusSaving] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
 
     try {
       const response = await fetch("/api/admin/users", {
@@ -88,34 +452,16 @@ export default function UsersManager({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || "Không thể tải tài khoản.",
-        );
+        throw new Error(data.error || "Không thể tải tài khoản.");
       }
 
       setUsers(data.users);
       setRoles(data.roles);
       setBranches(data.branches);
-
-      setForm((previous) => ({
-        ...previous,
-        roleCode:
-          previous.roleCode ||
-          data.roles[0]?.code ||
-          "STUDENT",
-        branchId:
-          previous.branchId ||
-          data.branches[0]?.id ||
-          "",
-      }));
     } catch (error) {
-      setNotice({
-        type: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Đã xảy ra lỗi.",
-      });
+      setLoadError(
+        error instanceof Error ? error.message : "Đã xảy ra lỗi.",
+      );
     } finally {
       setLoading(false);
     }
@@ -126,15 +472,38 @@ export default function UsersManager({
     void loadData();
   }, [loadData]);
 
+  const roleNames = useMemo(
+    () => new Map(roles.map((role) => [role.code, role.name])),
+    [roles],
+  );
+
+  const stats = useMemo(() => {
+    const active = users.filter((user) => user.status === "ACTIVE").length;
+
+    return {
+      total: users.length,
+      active,
+      inactive: users.length - active,
+    };
+  }, [users]);
+
   const filteredUsers = useMemo(() => {
     const keyword = search.trim().toLowerCase();
 
-    if (!keyword) {
-      return users;
-    }
-
     return users.filter((user) => {
-      const content = [
+      if (statusFilter !== "ALL" && user.status !== statusFilter) {
+        return false;
+      }
+
+      if (roleFilter !== "ALL" && !user.roles.includes(roleFilter)) {
+        return false;
+      }
+
+      if (!keyword) {
+        return true;
+      }
+
+      return [
         user.username,
         user.fullName,
         user.email ?? "",
@@ -143,495 +512,362 @@ export default function UsersManager({
         user.branches.join(" "),
       ]
         .join(" ")
-        .toLowerCase();
-
-      return content.includes(keyword);
+        .toLowerCase()
+        .includes(keyword);
     });
-  }, [users, search]);
+  }, [users, search, statusFilter, roleFilter]);
 
-  function updateForm(
-    field: keyof FormState,
-    value: string,
-  ) {
-    setForm((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+  function handleDone(message: string) {
+    setDialog(null);
+    setNotice({ type: "success", text: message });
+    void loadData();
   }
 
-  async function handleCreate(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-    setSaving(true);
-    setNotice(null);
-
-    try {
-      const response = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Không thể tạo tài khoản.",
-        );
-      }
-
-      setNotice({
-        type: "success",
-        text: "Tạo tài khoản thành công.",
-      });
-
-      setForm({
-        ...initialForm,
-        roleCode: form.roleCode,
-        branchId: form.branchId,
-      });
-
-      await loadData();
-    } catch (error) {
-      setNotice({
-        type: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Không thể tạo tài khoản.",
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function toggleStatus(user: UserItem) {
-    if (user.username === currentUsername) {
-      setNotice({
-        type: "error",
-        text: "Bạn không thể khóa tài khoản đang sử dụng.",
-      });
+  async function confirmStatusChange() {
+    if (dialog?.kind !== "status") {
       return;
     }
 
-    const nextStatus =
-      user.status === "ACTIVE"
-        ? "INACTIVE"
-        : "ACTIVE";
+    const user = dialog.user;
+    const nextStatus = user.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
 
-    const confirmed = window.confirm(
-      nextStatus === "INACTIVE"
-        ? `Bạn có chắc muốn khóa tài khoản "${user.username}"?`
-        : `Bạn có chắc muốn kích hoạt tài khoản "${user.username}"?`,
+    setStatusSaving(true);
+
+    const result = await callApi(
+      `/api/admin/users/${encodeURIComponent(user.id)}`,
+      "PATCH",
+      { status: nextStatus },
     );
 
-    if (!confirmed) {
-      return;
-    }
+    setStatusSaving(false);
+    setDialog(null);
+    setNotice({ type: result.ok ? "success" : "error", text: result.message });
 
-    setUpdatingId(user.id);
-    setNotice(null);
-
-    try {
-      const response = await fetch(
-        `/api/admin/users/${encodeURIComponent(user.id)}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            status: nextStatus,
-          }),
-        },
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Không thể cập nhật trạng thái.",
-        );
-      }
-
-      setNotice({
-        type: "success",
-        text: data.message,
-      });
-
-      await loadData();
-    } catch (error) {
-      setNotice({
-        type: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Không thể cập nhật tài khoản.",
-      });
-    } finally {
-      setUpdatingId(null);
+    if (result.ok) {
+      void loadData();
     }
   }
 
+  const statusTarget = dialog?.kind === "status" ? dialog.user : null;
+  const locking = statusTarget?.status === "ACTIVE";
+
   return (
-    <main className="min-h-screen bg-slate-100 p-4 text-slate-900 sm:p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white p-5">
-          <div>
-            <h1 className="text-2xl font-bold">
-              Quản lý tài khoản
-            </h1>
-
-            <p className="mt-1 text-sm text-slate-600">
-              Tạo tài khoản, gán vai trò và quản lý trạng thái.
-            </p>
-          </div>
-
-          <Link
-            href="/dashboard"
-            className="rounded-md border border-slate-700 bg-slate-800 px-4 py-2 font-semibold text-white hover:bg-slate-900"
+    <div className="text-slate-900">
+      <PageHeader
+        title="Quản lý tài khoản"
+        description="Tạo tài khoản, sửa thông tin, đặt lại mật khẩu và khóa hoặc kích hoạt."
+        actions={
+          <Button
+            type="button"
+            onClick={() => setDialog({ kind: "create" })}
+            disabled={loading}
           >
-            Quay lại Dashboard
-          </Link>
-        </header>
+            <Plus />
+            Tạo tài khoản
+          </Button>
+        }
+      />
 
-        {notice && (
-          <div
-            role="status"
-            className={
-              notice.type === "success"
-                ? "rounded-md border border-green-300 bg-green-50 p-3 text-green-900"
-                : "rounded-md border border-red-300 bg-red-50 p-3 text-red-900"
-            }
-          >
-            {notice.text}
-          </div>
-        )}
+      <Notice notice={notice} onClose={() => setNotice(null)} />
 
-        <section className="rounded-lg border border-slate-300 bg-white p-5">
-          <h2 className="mb-4 text-lg font-semibold">
-            Tạo tài khoản mới
-          </h2>
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Tổng số tài khoản"
+          value={stats.total}
+          icon={Users}
+          tone="blue"
+        />
+        <StatCard
+          label="Đang hoạt động"
+          value={stats.active}
+          icon={CheckCircle2}
+          tone="green"
+        />
+        <StatCard
+          label="Đã khóa"
+          value={stats.inactive}
+          icon={Lock}
+          tone="slate"
+        />
+      </div>
 
-          <form
-            onSubmit={handleCreate}
-            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            <div>
-              <label className="mb-1 block text-sm font-medium">
-                Username *
-              </label>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm theo tên đăng nhập, họ tên, email, vai trò..."
+            aria-label="Tìm kiếm tài khoản"
+            className={`${inputClass} pl-9`}
+          />
+        </div>
 
-              <input
-                value={form.username}
-                onChange={(event) =>
-                  updateForm("username", event.target.value)
-                }
-                minLength={3}
-                maxLength={100}
-                required
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
-              />
-            </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Lọc theo trạng thái"
+          className={`${inputClass} sm:w-44`}
+        >
+          <option value="ALL">Mọi trạng thái</option>
+          <option value="ACTIVE">Đang hoạt động</option>
+          <option value="INACTIVE">Đã khóa</option>
+        </select>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium">
-                Họ và tên *
-              </label>
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          aria-label="Lọc theo vai trò"
+          className={`${inputClass} sm:w-48`}
+        >
+          <option value="ALL">Mọi vai trò</option>
+          {roles.map((role) => (
+            <option key={role.code} value={role.code}>
+              {role.name}
+            </option>
+          ))}
+        </select>
 
-              <input
-                value={form.fullName}
-                onChange={(event) =>
-                  updateForm("fullName", event.target.value)
-                }
-                maxLength={150}
-                required
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
-              />
-            </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10"
+          onClick={() => void loadData()}
+          disabled={loading}
+        >
+          <RefreshCw />
+          Làm mới
+        </Button>
+      </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium">
-                Email
-              </label>
+      {loading ? (
+        <LoadingState />
+      ) : loadError ? (
+        <ErrorState message={loadError} onRetry={() => void loadData()} />
+      ) : filteredUsers.length === 0 ? (
+        <EmptyState
+          title="Không tìm thấy tài khoản"
+          description="Hãy thử đổi từ khóa hoặc bộ lọc."
+        />
+      ) : (
+        <TableCard>
+          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 font-semibold">Tài khoản</th>
+                <th className="px-4 py-3 font-semibold">Vai trò</th>
+                <th className="px-4 py-3 font-semibold">Chi nhánh</th>
+                <th className="px-4 py-3 font-semibold">Trạng thái</th>
+                <th className="px-4 py-3 font-semibold">Ngày tạo</th>
+                <th className="px-4 py-3 font-semibold">Thao tác</th>
+              </tr>
+            </thead>
 
-              <input
-                type="email"
-                value={form.email}
-                onChange={(event) =>
-                  updateForm("email", event.target.value)
-                }
-                maxLength={150}
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
-              />
-            </div>
+            <tbody className="divide-y divide-slate-100">
+              {filteredUsers.map((user) => {
+                const isCurrentUser = user.username === currentUsername;
+                const isActive = user.status === "ACTIVE";
 
-            <div>
-              <label className="mb-1 block text-sm font-medium">
-                Số điện thoại
-              </label>
-
-              <input
-                value={form.phone}
-                onChange={(event) =>
-                  updateForm("phone", event.target.value)
-                }
-                maxLength={30}
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium">
-                Mật khẩu *
-              </label>
-
-              <input
-                type="password"
-                value={form.password}
-                onChange={(event) =>
-                  updateForm("password", event.target.value)
-                }
-                minLength={8}
-                required
-                autoComplete="new-password"
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
-              />
-
-              <p className="mt-1 text-xs text-slate-600">
-                Tối thiểu 8 ký tự.
-              </p>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium">
-                Vai trò *
-              </label>
-
-              <select
-                value={form.roleCode}
-                onChange={(event) =>
-                  updateForm("roleCode", event.target.value)
-                }
-                required
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
-              >
-                {roles.map((role) => (
-                  <option
-                    key={role.code}
-                    value={role.code}
-                  >
-                    {role.name} ({role.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium">
-                Chi nhánh *
-              </label>
-
-              <select
-                value={form.branchId}
-                onChange={(event) =>
-                  updateForm("branchId", event.target.value)
-                }
-                required
-                className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
-              >
-                <option value="">
-                  -- Chọn chi nhánh --
-                </option>
-
-                {branches.map((branch) => (
-                  <option
-                    key={branch.id}
-                    value={branch.id}
-                  >
-                    {branch.name} ({branch.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-end">
-              <button
-                type="submit"
-                disabled={
-                  saving ||
-                  loading ||
-                  roles.length === 0 ||
-                  branches.length === 0
-                }
-                className="w-full rounded-md bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving
-                  ? "Đang tạo..."
-                  : "Tạo tài khoản"}
-              </button>
-            </div>
-          </form>
-
-          {branches.length === 0 && !loading && (
-            <p className="mt-4 text-sm text-red-700">
-              Chưa có chi nhánh ACTIVE. Hãy kiểm tra dữ liệu bảng branches trước khi tạo tài khoản.
-            </p>
-          )}
-        </section>
-
-        <section className="rounded-lg border border-slate-300 bg-white p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">
-                Danh sách tài khoản
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-600">
-                Số kết quả: {filteredUsers.length}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => void loadData()}
-              disabled={loading}
-              className="rounded-md border border-slate-400 bg-white px-4 py-2 font-medium text-slate-800 hover:bg-slate-100 disabled:opacity-60"
-            >
-              Làm mới
-            </button>
-          </div>
-
-          <div className="mb-4">
-            <label className="mb-1 block text-sm font-medium">
-              Tìm kiếm
-            </label>
-
-            <input
-              value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
-              }
-              placeholder="Nhập username, họ tên, email hoặc role..."
-              className="w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900"
-            />
-          </div>
-
-          {loading ? (
-            <p className="py-8 text-center text-slate-600">
-              Đang tải dữ liệu...
-            </p>
-          ) : filteredUsers.length === 0 ? (
-            <p className="py-8 text-center text-slate-600">
-              Không tìm thấy tài khoản.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-300 bg-slate-100">
-                    <th className="p-3">Tài khoản</th>
-                    <th className="p-3">Họ tên</th>
-                    <th className="p-3">Email</th>
-                    <th className="p-3">Role</th>
-                    <th className="p-3">Chi nhánh</th>
-                    <th className="p-3">Trạng thái</th>
-                    <th className="p-3">Thao tác</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {filteredUsers.map((user) => {
-                    const isActive =
-                      user.status === "ACTIVE";
-
-                    const isCurrentUser =
-                      user.username === currentUsername;
-
-                    return (
-                      <tr
-                        key={user.id}
-                        className="border-b border-slate-200 hover:bg-slate-50"
-                      >
-                        <td className="p-3 font-medium">
-                          {user.username}
-                        </td>
-
-                        <td className="p-3">
-                          {user.fullName}
-                        </td>
-
-                        <td className="p-3">
-                          {user.email || "—"}
-                        </td>
-
-                        <td className="p-3">
-                          <div className="flex flex-wrap gap-1">
-                            {user.roles.map((code) => (
-                              <span
-                                key={code}
-                                className="rounded border border-slate-300 bg-slate-100 px-2 py-1 text-xs font-medium text-slate-800"
-                              >
-                                {code}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-
-                        <td className="p-3">
-                          {user.branches.join(", ") || "—"}
-                        </td>
-
-                        <td className="p-3">
-                          <span
-                            className={
-                              isActive
-                                ? "rounded border border-green-300 bg-green-50 px-2 py-1 text-xs font-semibold text-green-800"
-                                : "rounded border border-red-300 bg-red-50 px-2 py-1 text-xs font-semibold text-red-800"
-                            }
-                          >
-                            {user.status}
+                return (
+                  <tr key={user.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-slate-900">
+                        {user.fullName}
+                        {isCurrentUser && (
+                          <span className="ml-2 rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-medium text-blue-700">
+                            Bạn
                           </span>
-                        </td>
+                        )}
+                      </p>
+                      <p className="text-xs text-slate-500">{user.username}</p>
+                      <p className="text-xs text-slate-500">
+                        {user.email || "Chưa có email"}
+                      </p>
+                    </td>
 
-                        <td className="p-3">
-                          {isCurrentUser ? (
-                            <span className="text-xs text-slate-500">
-                              Tài khoản hiện tại
-                            </span>
-                          ) : (
-                            <button
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {user.roles.map((code) => (
+                          <span
+                            key={code}
+                            className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700"
+                          >
+                            {roleNames.get(code) ?? code}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3 text-slate-700">
+                      {user.branches.join(", ") || "—"}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <StatusBadge
+                        status={user.status}
+                        label={isActive ? "Đang hoạt động" : "Đã khóa"}
+                      />
+                    </td>
+
+                    <td className="px-4 py-3 text-slate-600">
+                      {new Date(user.createdAt).toLocaleDateString("vi-VN")}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDialog({ kind: "edit", user })}
+                        >
+                          <Pencil />
+                          Sửa
+                        </Button>
+
+                        {isCurrentUser ? (
+                          <Link
+                            href="/account"
+                            className="inline-flex h-7 items-center gap-1 rounded-lg border border-border bg-background px-2.5 text-[0.8rem] font-medium hover:bg-muted"
+                          >
+                            <KeyRound className="size-3.5" />
+                            Đổi mật khẩu
+                          </Link>
+                        ) : (
+                          <>
+                            <Button
                               type="button"
-                              disabled={updatingId === user.id}
+                              variant="outline"
+                              size="sm"
                               onClick={() =>
-                                void toggleStatus(user)
-                              }
-                              className={
-                                isActive
-                                  ? "rounded-md border border-red-300 bg-white px-3 py-1.5 font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
-                                  : "rounded-md border border-green-300 bg-white px-3 py-1.5 font-medium text-green-700 hover:bg-green-50 disabled:opacity-60"
+                                setDialog({ kind: "password", user })
                               }
                             >
-                              {updatingId === user.id
-                                ? "Đang cập nhật..."
-                                : isActive
-                                  ? "Khóa"
-                                  : "Kích hoạt"}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                              <KeyRound />
+                              Mật khẩu
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant={isActive ? "destructive" : "outline"}
+                              size="sm"
+                              onClick={() =>
+                                setDialog({ kind: "status", user })
+                              }
+                            >
+                              {isActive ? "Khóa" : "Kích hoạt"}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </TableCard>
+      )}
+
+      {/* Hộp thoại: tạo tài khoản */}
+      <Dialog
+        open={dialog?.kind === "create"}
+        onOpenChange={(open) => {
+          if (!open) setDialog(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Tạo tài khoản mới</DialogTitle>
+            <DialogDescription>
+              Điền thông tin, chọn vai trò và chi nhánh cho tài khoản.
+            </DialogDescription>
+          </DialogHeader>
+
+          <CreateUserForm
+            roles={roles}
+            branches={branches}
+            onCancel={() => setDialog(null)}
+            onDone={handleDone}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Hộp thoại: sửa thông tin */}
+      <Dialog
+        open={dialog?.kind === "edit"}
+        onOpenChange={(open) => {
+          if (!open) setDialog(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          {dialog?.kind === "edit" && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Sửa thông tin tài khoản</DialogTitle>
+                <DialogDescription>
+                  Tài khoản: {dialog.user.username}
+                </DialogDescription>
+              </DialogHeader>
+
+              <EditUserForm
+                key={dialog.user.id}
+                user={dialog.user}
+                onCancel={() => setDialog(null)}
+                onDone={handleDone}
+              />
+            </>
           )}
-        </section>
-      </div>
-    </main>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hộp thoại: đặt lại mật khẩu */}
+      <Dialog
+        open={dialog?.kind === "password"}
+        onOpenChange={(open) => {
+          if (!open) setDialog(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          {dialog?.kind === "password" && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Đặt lại mật khẩu</DialogTitle>
+                <DialogDescription>
+                  Tài khoản: {dialog.user.username} ({dialog.user.fullName})
+                </DialogDescription>
+              </DialogHeader>
+
+              <ResetPasswordForm
+                key={dialog.user.id}
+                user={dialog.user}
+                onCancel={() => setDialog(null)}
+                onDone={handleDone}
+              />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Xác nhận khóa / kích hoạt */}
+      <ConfirmDialog
+        open={dialog?.kind === "status"}
+        onOpenChange={(open) => {
+          if (!open) setDialog(null);
+        }}
+        title={locking ? "Khóa tài khoản?" : "Kích hoạt tài khoản?"}
+        description={
+          statusTarget
+            ? locking
+              ? `Tài khoản "${statusTarget.username}" sẽ không đăng nhập được nữa. Phiên đang mở (nếu có) hết hạn theo thời gian.`
+              : `Tài khoản "${statusTarget.username}" sẽ đăng nhập lại được.`
+            : undefined
+        }
+        confirmLabel={locking ? "Khóa tài khoản" : "Kích hoạt"}
+        destructive={locking}
+        loading={statusSaving}
+        onConfirm={() => void confirmStatusChange()}
+      />
+    </div>
   );
 }
