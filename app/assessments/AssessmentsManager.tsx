@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
@@ -83,6 +83,10 @@ export default function AssessmentsManager({
 
   const [notice, setNotice] = useState<NoticeState>(null);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [aiBusyId, setAiBusyId] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<{ id: string; text: string } | null>(
+    null,
+  );
   const [publishError, setPublishError] = useState<string | null>(null);
 
   const loadList = useCallback(async () => {
@@ -227,6 +231,50 @@ export default function AssessmentsManager({
     setNotice({ type: "success", text: result.message });
     await loadList();
     await openSheet(sheet.assessment.id);
+  }
+
+  async function suggestFeedback(studentId: string) {
+    if (!sheet) return;
+
+    const score = rows[studentId]?.score ?? "";
+
+    if (score.trim() === "") {
+      setAiError({
+        id: studentId,
+        text: "Hãy nhập điểm của học viên trước khi nhờ AI gợi ý.",
+      });
+      return;
+    }
+
+    setAiBusyId(studentId);
+    setAiError(null);
+
+    try {
+      const response = await fetch("/api/ai/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assessmentId: sheet.assessment.id,
+          studentId,
+          score,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error ?? "Không thể lấy gợi ý từ AI.");
+      }
+
+      setRow(studentId, { feedback: data.text });
+    } catch (err) {
+      setAiError({
+        id: studentId,
+        text:
+          err instanceof Error ? err.message : "Không thể lấy gợi ý từ AI.",
+      });
+    } finally {
+      setAiBusyId(null);
+    }
   }
 
   const editable =
@@ -443,15 +491,36 @@ export default function AssessmentsManager({
                         />
                       </td>
                       <td className="p-2">
-                        <input
-                          className={`${inputClass} w-full`}
-                          disabled={!editable}
-                          maxLength={1000}
-                          value={rows[s.studentId]?.feedback ?? ""}
-                          onChange={(e) =>
-                            setRow(s.studentId, { feedback: e.target.value })
-                          }
-                        />
+                        <div className="flex items-center gap-2">
+                          <input
+                            className={`${inputClass} w-full`}
+                            disabled={!editable}
+                            maxLength={1000}
+                            value={rows[s.studentId]?.feedback ?? ""}
+                            onChange={(e) =>
+                              setRow(s.studentId, { feedback: e.target.value })
+                            }
+                          />
+
+                          {editable && (
+                            <button
+                              type="button"
+                              title="AI soạn nhận xét từ điểm và chuyên cần"
+                              disabled={aiBusyId !== null}
+                              onClick={() => void suggestFeedback(s.studentId)}
+                              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-violet-300 px-2.5 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-60"
+                            >
+                              <Sparkles className="size-3.5" />
+                              {aiBusyId === s.studentId ? "Đang soạn..." : "AI gợi ý"}
+                            </button>
+                          )}
+                        </div>
+
+                        {aiError?.id === s.studentId && (
+                          <p role="alert" className="mt-1 text-xs text-red-600">
+                            {aiError.text}
+                          </p>
+                        )}
                       </td>
                     </tr>
                   ))}
