@@ -8,7 +8,12 @@ import {
   useState,
 } from "react";
 
-import Link from "next/link";
+import { Notice } from "@/components/shared/Notice";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatCard } from "@/components/shared/StatCard";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, CircleAlert, GraduationCap, Receipt, RefreshCw } from "lucide-react";
 
 type Enrollment = {
   id: string;
@@ -61,7 +66,7 @@ const invoiceLabels: Record<string, string> = {
 };
 
 const inputClass =
-  "w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900";
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30";
 
 function money(value: string | null): string {
   if (value === null) return "-";
@@ -248,49 +253,35 @@ export default function EnrollmentsManager({
   return (
     <main className="min-h-screen bg-slate-100 p-4 text-slate-900 sm:p-6">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white p-5">
-          <div>
-            <h1 className="text-2xl font-bold">Ghi danh &amp; hóa đơn</h1>
-
-            <p className="mt-1 text-sm text-slate-600">
-              Ghi danh học viên vào khóa học, hệ thống tự tạo hóa đơn
-              (học phí thu một lần)
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <button
+        <PageHeader
+          title="Ghi danh và hóa đơn"
+          description="Ghi danh học viên vào khóa học; hệ thống tự tạo hóa đơn (học phí thu một lần)."
+          actions={
+            <Button
               type="button"
+              variant="outline"
               onClick={() => void loadData()}
               disabled={loading}
-              className="rounded-md border border-slate-400 bg-white px-4 py-2 font-medium text-slate-800 hover:bg-slate-100 disabled:opacity-60"
             >
+              <RefreshCw />
               {loading ? "Đang tải..." : "Tải lại"}
-            </button>
+            </Button>
+          }
+        />
 
-            <Link
-              href="/dashboard"
-              className="rounded-md bg-slate-800 px-4 py-2 font-semibold text-white hover:bg-slate-900"
-            >
-              Dashboard
-            </Link>
-          </div>
-        </header>
+        <Notice notice={notice} onClose={() => setNotice(null)} />
 
-        {notice && (
-          <div
-            className={`rounded-md border p-3 text-sm ${
-              notice.type === "success"
-                ? "border-green-300 bg-green-50 text-green-900"
-                : "border-red-300 bg-red-50 text-red-900"
-            }`}
-          >
-            {notice.text}
+        {!loading && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Tổng số ghi danh" value={enrollments.length} icon={GraduationCap} tone="blue" />
+            <StatCard label="Đang học" value={enrollments.filter((row) => row.status === "ACTIVE").length} icon={CheckCircle2} tone="green" />
+            <StatCard label="Hóa đơn chưa thu đủ" value={enrollments.filter((row) => row.status === "ACTIVE" && (row.invoiceStatus === "ISSUED" || row.invoiceStatus === "PARTIAL")).length} icon={Receipt} tone="amber" />
+            <StatCard label="Đã hủy" value={enrollments.filter((row) => row.status === "CANCELLED").length} icon={CircleAlert} tone="slate" />
           </div>
         )}
 
         {canCreate && (
-          <section className="rounded-lg border border-slate-300 bg-white p-5">
+          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold">
               Ghi danh học viên
             </h2>
@@ -360,7 +351,7 @@ export default function EnrollmentsManager({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-md bg-blue-700 px-5 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+                  className="rounded-lg bg-blue-600 px-5 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   {saving ? "Đang lưu..." : "Ghi danh & tạo hóa đơn"}
                 </button>
@@ -369,7 +360,7 @@ export default function EnrollmentsManager({
           </section>
         )}
 
-        <section className="rounded-lg border border-slate-300 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <h2 className="text-lg font-semibold">
               Danh sách ghi danh ({filtered.length})
@@ -447,7 +438,10 @@ export default function EnrollmentsManager({
                     <td className="py-2 pr-3">{money(row.remainingAmount)}</td>
 
                     <td className="py-2 pr-3">
-                      {statusLabels[row.status] ?? row.status}
+                      <StatusBadge
+                        status={row.status}
+                        label={statusLabels[row.status] ?? row.status}
+                      />
                     </td>
 
                     <td className="py-2">
