@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FormField, inputClass } from "@/components/shared/FormField";
+import { Notice } from "@/components/shared/Notice";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { callApi } from "@/lib/client-api";
 
@@ -50,9 +51,11 @@ export function RoomList({
   const [capacity, setCapacity] = useState("");
   const [status, setStatus] = useState("ACTIVE");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function open(room: RoomItem) {
     setEditing(room);
+    setError(null);
     setName(room.name ?? "");
     setCapacity(String(room.capacity));
     setStatus(room.status);
@@ -70,12 +73,15 @@ export function RoomList({
     });
 
     setSaving(false);
-    notify(result.ok ? "success" : "error", result.message);
 
-    if (result.ok) {
-      setEditing(null);
-      onChanged();
+    if (!result.ok) {
+      setError(result.message);
+      return;
     }
+
+    notify("success", result.message);
+    setEditing(null);
+    onChanged();
   }
 
   return (
@@ -163,6 +169,8 @@ export function RoomList({
             </FormField>
           </div>
 
+          {error && <Notice notice={{ type: "error", text: error }} />}
+
           <DialogFooter>
             <Button
               type="button"
@@ -195,9 +203,11 @@ export function TeacherList({
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState("ACTIVE");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function open(teacher: TeacherItem) {
     setEditing(teacher);
+    setError(null);
     setPhone(teacher.phone ?? "");
     setStatus(teacher.employmentStatus ?? "ACTIVE");
   }
@@ -213,12 +223,15 @@ export function TeacherList({
     });
 
     setSaving(false);
-    notify(result.ok ? "success" : "error", result.message);
 
-    if (result.ok) {
-      setEditing(null);
-      onChanged();
+    if (!result.ok) {
+      setError(result.message);
+      return;
     }
+
+    notify("success", result.message);
+    setEditing(null);
+    onChanged();
   }
 
   return (
@@ -293,6 +306,8 @@ export function TeacherList({
               </select>
             </FormField>
           </div>
+
+          {error && <Notice notice={{ type: "error", text: error }} />}
 
           <DialogFooter>
             <Button

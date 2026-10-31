@@ -2,8 +2,13 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
-import Link from "next/link";
+import { RefreshCw } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { Notice, type NoticeState } from "@/components/shared/Notice";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { callApi } from "@/lib/client-api";
 import { ASSESSMENT_TYPE_LABELS } from "@/lib/assessments";
 
@@ -76,10 +81,9 @@ export default function AssessmentsManager({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [notice, setNotice] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  const [notice, setNotice] = useState<NoticeState>(null);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -204,16 +208,7 @@ export default function AssessmentsManager({
   async function publish() {
     if (!sheet) return;
 
-    if (
-      !window.confirm(
-        "Công bố kết quả cho học viên và phụ huynh? Sau khi công bố sẽ không sửa điểm được nữa.",
-      )
-    ) {
-      return;
-    }
-
     setSaving(true);
-    setNotice(null);
 
     const result = await callApi(
       `/api/assessments/${sheet.assessment.id}`,
@@ -221,13 +216,17 @@ export default function AssessmentsManager({
       { status: "PUBLISHED" },
     );
 
-    setNotice({ type: result.ok ? "success" : "error", text: result.message });
     setSaving(false);
 
-    if (result.ok) {
-      await loadList();
-      await openSheet(sheet.assessment.id);
+    if (!result.ok) {
+      setPublishError(result.message);
+      return;
     }
+
+    setPublishOpen(false);
+    setNotice({ type: "success", text: result.message });
+    await loadList();
+    await openSheet(sheet.assessment.id);
   }
 
   const editable =
@@ -236,47 +235,26 @@ export default function AssessmentsManager({
   return (
     <div className="text-slate-900">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white p-5">
-          <div>
-            <h1 className="text-2xl font-bold">Đánh giá &amp; điểm số</h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Tạo bài đánh giá cho lớp, nhập điểm, công bố kết quả
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <button
+        <PageHeader
+          title="Đánh giá & điểm số"
+          description="Tạo bài đánh giá cho lớp, nhập điểm, công bố kết quả"
+          actions={
+            <Button
               type="button"
+              variant="outline"
               onClick={() => void loadList()}
               disabled={loading}
-              className="rounded-md border border-slate-400 bg-white px-4 py-2 font-medium hover:bg-slate-100 disabled:opacity-60"
             >
+              <RefreshCw className={loading ? "animate-spin" : ""} />
               {loading ? "Đang tải..." : "Tải lại"}
-            </button>
+            </Button>
+          }
+        />
 
-            <Link
-              href="/dashboard"
-              className="rounded-md bg-slate-800 px-4 py-2 font-semibold text-white hover:bg-slate-900"
-            >
-              Dashboard
-            </Link>
-          </div>
-        </header>
-
-        {notice && (
-          <div
-            className={`rounded-md border p-3 text-sm ${
-              notice.type === "success"
-                ? "border-green-300 bg-green-50 text-green-900"
-                : "border-red-300 bg-red-50 text-red-900"
-            }`}
-          >
-            {notice.text}
-          </div>
-        )}
+        <Notice notice={notice} onClose={() => setNotice(null)} />
 
         {canCreate && (
-          <section className="rounded-lg border border-slate-300 bg-white p-5">
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
             <h2 className="mb-4 text-lg font-semibold">Tạo bài đánh giá</h2>
 
             <form onSubmit={handleCreate} className="grid gap-4 md:grid-cols-5">
@@ -337,7 +315,7 @@ export default function AssessmentsManager({
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-md bg-blue-700 px-5 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60 md:col-span-5"
+                className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 md:col-span-5"
               >
                 {saving ? "Đang lưu..." : "Tạo bài đánh giá"}
               </button>
@@ -345,7 +323,7 @@ export default function AssessmentsManager({
           </section>
         )}
 
-        <section className="rounded-lg border border-slate-300 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
           <h2 className="mb-3 text-lg font-semibold">
             Danh sách bài đánh giá ({items.length})
           </h2>
@@ -388,7 +366,13 @@ export default function AssessmentsManager({
                     <td className="p-2">
                       {a.gradedCount}/{a.studentCount}
                     </td>
-                    <td className="p-2">{statusLabels[a.status] ?? a.status}</td>
+                    <td className="p-2">
+                      <StatusBadge
+                        status={a.status}
+                        label={statusLabels[a.status]}
+                        tone={a.status === "OPEN" ? "amber" : "green"}
+                      />
+                    </td>
                     <td className="p-2">
                       <button
                         type="button"
@@ -406,7 +390,7 @@ export default function AssessmentsManager({
         </section>
 
         {sheet && (
-          <section className="rounded-lg border border-slate-300 bg-white p-5">
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">
                 {sheet.assessment.name} · {sheet.assessment.classCode} ·{" "}
@@ -414,9 +398,11 @@ export default function AssessmentsManager({
                 {sheet.assessment.maxScore} điểm
               </h2>
 
-              <span className="text-sm text-slate-600">
-                {statusLabels[sheet.assessment.status] ?? sheet.assessment.status}
-              </span>
+              <StatusBadge
+                status={sheet.assessment.status}
+                label={statusLabels[sheet.assessment.status]}
+                tone={sheet.assessment.status === "OPEN" ? "amber" : "green"}
+              />
             </div>
 
             <div className="overflow-x-auto">
@@ -479,14 +465,17 @@ export default function AssessmentsManager({
                   type="button"
                   onClick={() => void saveScores()}
                   disabled={saving}
-                  className="rounded-md bg-blue-700 px-5 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+                  className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   {saving ? "Đang lưu..." : "Lưu điểm"}
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => void publish()}
+                  onClick={() => {
+                    setPublishError(null);
+                    setPublishOpen(true);
+                  }}
                   disabled={saving}
                   className="rounded-md border border-green-700 px-5 py-2 font-semibold text-green-800 hover:bg-green-50 disabled:opacity-60"
                 >
@@ -497,6 +486,18 @@ export default function AssessmentsManager({
           </section>
         )}
       </div>
+
+      <ConfirmDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        title="Công bố kết quả?"
+        description="Kết quả sẽ hiển thị cho học viên và phụ huynh. Sau khi công bố sẽ không sửa điểm được nữa."
+        confirmLabel="Công bố"
+        cancelLabel="Chưa công bố"
+        loading={saving}
+        error={publishError}
+        onConfirm={() => void publish()}
+      />
     </div>
   );
 }

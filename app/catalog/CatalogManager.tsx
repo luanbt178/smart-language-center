@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
+import { RefreshCw } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/shared/states";
+import { Notice as NoticeBanner } from "@/components/shared/Notice";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 type Item = {
   id: string;
@@ -39,7 +44,7 @@ const emptyCatalog: Catalog = {
 
 
 const buttonClass =
-  "rounded-md bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60";
+  "rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60";
 
 type TableCell = string | number | null | undefined;
 
@@ -53,7 +58,7 @@ function FormCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-slate-300 bg-white p-5">
+    <section className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
       <h2 className="text-lg font-semibold">{title}</h2>
 
       <p className="mt-1 mb-4 text-sm text-slate-600">
@@ -171,7 +176,7 @@ function DataTable({
   rows: TableCell[][];
 }) {
   return (
-    <section className="rounded-lg border border-slate-300 bg-white p-5">
+    <section className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
       <h2 className="mb-4 text-lg font-semibold">
         {title} ({rows.length})
       </h2>
@@ -400,7 +405,7 @@ export default function CatalogManager({
   //   children: ReactNode;
   // }) {
   //   return (
-  //     <section className="rounded-lg border border-slate-300 bg-white p-5">
+  //     <section className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
   //       <h2 className="text-lg font-semibold">{title}</h2>
   //       <p className="mt-1 mb-4 text-sm text-slate-600">
   //         {description}
@@ -508,7 +513,7 @@ export default function CatalogManager({
   //   rows: (string | number | null | undefined)[][];
   // }) {
   //   return (
-  //     <section className="rounded-lg border border-slate-300 bg-white p-5">
+  //     <section className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
   //       <h2 className="mb-4 text-lg font-semibold">
   //         {title} ({rows.length})
   //       </h2>
@@ -556,53 +561,25 @@ export default function CatalogManager({
   return (
     <div className="text-slate-900">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white p-5">
-          <div>
-            <h1 className="text-2xl font-bold">
-              Danh mục đào tạo
-            </h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Ngôn ngữ, trình độ, chương trình và các phiên bản khóa học.
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <button
+        <PageHeader
+          title="Danh mục đào tạo"
+          description="Ngôn ngữ, trình độ, chương trình và các phiên bản khóa học."
+          actions={
+            <Button
               type="button"
+              variant="outline"
               onClick={() => void loadData()}
               disabled={loading}
-              className="rounded-md border border-slate-400 bg-white px-4 py-2 font-medium hover:bg-slate-100 disabled:opacity-60"
             >
+              <RefreshCw className={loading ? "animate-spin" : ""} />
               Làm mới
-            </button>
+            </Button>
+          }
+        />
 
-            <Link
-              href="/dashboard"
-              className="rounded-md bg-slate-800 px-4 py-2 font-semibold text-white hover:bg-slate-900"
-            >
-              Dashboard
-            </Link>
-          </div>
-        </header>
+        <NoticeBanner notice={notice} onClose={() => setNotice(null)} />
 
-        {notice && (
-          <div
-            role="status"
-            className={
-              notice.type === "success"
-                ? "rounded-md border border-green-300 bg-green-50 p-3 text-green-900"
-                : "rounded-md border border-red-300 bg-red-50 p-3 text-red-900"
-            }
-          >
-            {notice.text}
-          </div>
-        )}
-
-        {loading && (
-          <p className="text-sm text-slate-600">
-            Đang tải danh mục...
-          </p>
-        )}
+        {loading && <LoadingState text="Đang tải danh mục..." />}
         {!canCreate && (
           <div className="rounded-md border border-blue-300 bg-blue-50 p-4 text-blue-950">
             <p className="font-semibold">Chế độ chỉ xem</p>
