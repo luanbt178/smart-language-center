@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiPermission } from "@/lib/permissions";
+import { writeAudit } from "@/lib/audit";
 
 export async function PATCH(
   request: Request,
@@ -133,6 +134,14 @@ export async function PATCH(
       SET status = ${status}
       WHERE id = ${userId}
     `;
+
+    await writeAudit({
+      userId: auth.session.userId,
+      action: "USER_STATUS_CHANGE",
+      entityType: "user",
+      entityId: userId,
+      newData: { status },
+    });
 
     return NextResponse.json({
       success: true,

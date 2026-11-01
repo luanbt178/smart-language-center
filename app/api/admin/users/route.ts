@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiPermission } from "@/lib/permissions";
+import { writeAudit } from "@/lib/audit";
 import bcrypt from "bcryptjs";
 
 type UserRow = {
@@ -356,6 +357,13 @@ export async function POST(request: Request) {
         return userId;
       },
     );
+
+    await writeAudit({
+      userId: auth.session.userId,
+      action: "USER_CREATE",
+      entityType: "user",
+      entityId: newUserId,
+    });
 
     return NextResponse.json(
       {

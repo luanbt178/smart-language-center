@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiPermission } from "@/lib/permissions";
+import { writeAudit } from "@/lib/audit";
 import { readText } from "@/lib/students";
 
 type Params = { params: Promise<{ id: string }> };
@@ -119,6 +120,18 @@ export async function PATCH(request: Request, { params }: Params) {
       SET phone = ${phone}, employment_status = ${status}
       WHERE id = ${teacherId}
     `;
+
+    await writeAudit({
+      userId: auth.session.userId,
+      action: "TEACHER_UPDATE",
+      entityType: "teacher",
+      entityId: teacherId,
+      oldData: {
+        phone: teacher.phone,
+        employmentStatus: teacher.employment_status,
+      },
+      newData: { phone, employmentStatus: status },
+    });
 
     return NextResponse.json({
       success: true,
