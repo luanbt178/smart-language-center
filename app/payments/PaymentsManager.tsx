@@ -2,8 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import Link from "next/link";
+import { CheckCircle2, CircleAlert, Receipt, RefreshCw } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { inputClass } from "@/components/shared/FormField";
+import { Notice, type NoticeState } from "@/components/shared/Notice";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatCard } from "@/components/shared/StatCard";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { callApi } from "@/lib/client-api";
 
 type Invoice = {
@@ -45,9 +52,6 @@ const methodLabels: Record<string, string> = {
   CARD: "Thẻ",
 };
 
-const inputClass =
-  "rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900";
-
 function money(value: string): string {
   const number = Number(value);
 
@@ -78,10 +82,9 @@ export default function PaymentsManager({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [notice, setNotice] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  const [voidTarget, setVoidTarget] = useState<string | null>(null);
+
+  const [notice, setNotice] = useState<NoticeState>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -207,8 +210,6 @@ export default function PaymentsManager({
   }
 
   async function voidPayment(paymentId: string) {
-    if (!window.confirm("Hủy giao dịch thu tiền này?")) return;
-
     setSaving(true);
 
     const result = await callApi(`/api/payments/${paymentId}`, "DELETE");
@@ -242,71 +243,53 @@ export default function PaymentsManager({
   return (
     <div className="text-slate-900">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white p-5">
-          <div>
-            <h1 className="text-2xl font-bold">Hóa đơn &amp; thanh toán</h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Thu học phí, theo dõi công nợ
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <button
+        <PageHeader
+          title="Hóa đơn & thanh toán"
+          description="Thu học phí, theo dõi công nợ"
+          actions={
+            <Button
               type="button"
+              variant="outline"
               onClick={() => void loadData()}
               disabled={loading}
-              className="rounded-md border border-slate-400 bg-white px-4 py-2 font-medium hover:bg-slate-100 disabled:opacity-60"
             >
+              <RefreshCw className={loading ? "animate-spin" : ""} />
               {loading ? "Đang tải..." : "Tải lại"}
-            </button>
+            </Button>
+          }
+        />
 
-            <Link
-              href="/dashboard"
-              className="rounded-md bg-slate-800 px-4 py-2 font-semibold text-white hover:bg-slate-900"
-            >
-              Dashboard
-            </Link>
-          </div>
-        </header>
-
-        {notice && (
-          <div
-            className={`rounded-md border p-3 text-sm ${
-              notice.type === "success"
-                ? "border-green-300 bg-green-50 text-green-900"
-                : "border-red-300 bg-red-50 text-red-900"
-            }`}
-          >
-            {notice.text}
-          </div>
-        )}
+        <Notice notice={notice} onClose={() => setNotice(null)} />
 
         <section className="grid gap-4 sm:grid-cols-3">
-          {[
-            ["Tổng phải thu", totals.billed],
-            ["Đã thu", totals.paid],
-            ["Còn nợ", totals.remaining],
-          ].map(([label, value]) => (
-            <div
-              key={String(label)}
-              className="rounded-lg border border-slate-300 bg-white p-5"
-            >
-              <p className="text-sm text-slate-600">{label}</p>
-              <p className="mt-1 text-2xl font-bold">
-                {Number(value).toLocaleString("vi-VN")} đ
-              </p>
-            </div>
-          ))}
+          <StatCard
+            label="Tổng phải thu"
+            value={`${totals.billed.toLocaleString("vi-VN")} đ`}
+            icon={Receipt}
+            tone="blue"
+          />
+          <StatCard
+            label="Đã thu"
+            value={`${totals.paid.toLocaleString("vi-VN")} đ`}
+            icon={CheckCircle2}
+            tone="green"
+          />
+          <StatCard
+            label="Còn nợ"
+            value={`${totals.remaining.toLocaleString("vi-VN")} đ`}
+            icon={CircleAlert}
+            tone="red"
+          />
         </section>
 
-        <section className="rounded-lg border border-slate-300 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <h2 className="text-lg font-semibold">
               Hóa đơn ({filtered.length})
             </h2>
 
             <input
-              className={`${inputClass} w-full max-w-xs`}
+              className={`${inputClass} max-w-xs`}
               placeholder="Tìm mã hóa đơn, học viên, khóa học"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -329,7 +312,7 @@ export default function PaymentsManager({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[950px] text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-300 text-slate-600">
+                <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <th className="p-2">Hóa đơn</th>
                   <th className="p-2">Học viên</th>
                   <th className="p-2">Khóa học</th>
@@ -376,7 +359,7 @@ export default function PaymentsManager({
                       onCancelPaying={() => setPayingId(null)}
                       onSubmit={() => void submitPayment()}
                       onToggleHistory={() => void toggleHistory(row.id)}
-                      onVoid={(paymentId) => void voidPayment(paymentId)}
+                      onVoid={(paymentId) => setVoidTarget(paymentId)}
                     />
                   );
                 })}
@@ -385,6 +368,25 @@ export default function PaymentsManager({
           </div>
         </section>
       </div>
+
+      <ConfirmDialog
+        open={voidTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setVoidTarget(null);
+        }}
+        title="Hủy giao dịch thu tiền?"
+        description="Giao dịch sẽ chuyển sang trạng thái đã hủy và số tiền được tính lại trên hóa đơn."
+        confirmLabel="Hủy giao dịch"
+        cancelLabel="Giữ lại"
+        destructive
+        loading={saving}
+        onConfirm={async () => {
+          if (!voidTarget) return;
+
+          await voidPayment(voidTarget);
+          setVoidTarget(null);
+        }}
+      />
     </div>
   );
 }
@@ -453,14 +455,20 @@ function FragmentRows({
         <td className="p-2">{money(row.amount)}</td>
         <td className="p-2">{money(row.paidAmount)}</td>
         <td className="p-2">{money(row.remainingAmount)}</td>
-        <td className="p-2">{statusLabels[row.status] ?? row.status}</td>
+        <td className="p-2">
+          <StatusBadge
+            status={row.status}
+            label={statusLabels[row.status]}
+            tone={row.status === "ISSUED" ? "amber" : undefined}
+          />
+        </td>
         <td className="p-2">
           <div className="flex flex-wrap gap-2">
             {canPay && payable && (
               <button
                 type="button"
                 onClick={onStartPaying}
-                className="rounded-md bg-blue-700 px-3 py-1 font-semibold text-white hover:bg-blue-800"
+                className="rounded-lg bg-blue-600 px-3 py-1 text-sm font-semibold text-white hover:bg-blue-700"
               >
                 Thu tiền
               </button>
@@ -469,7 +477,7 @@ function FragmentRows({
             <button
               type="button"
               onClick={onToggleHistory}
-              className="rounded-md border border-slate-400 px-3 py-1 hover:bg-slate-100"
+              className="rounded-lg border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100"
             >
               Lịch sử
             </button>
@@ -484,7 +492,7 @@ function FragmentRows({
               <label className="text-sm font-medium">
                 Số tiền thu
                 <input
-                  className={`${inputClass} mt-1 block`}
+                  className={`${inputClass} mt-1 block w-auto`}
                   inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
@@ -494,7 +502,7 @@ function FragmentRows({
               <label className="text-sm font-medium">
                 Hình thức
                 <select
-                  className={`${inputClass} mt-1 block`}
+                  className={`${inputClass} mt-1 block w-auto`}
                   value={method}
                   onChange={(e) => setMethod(e.target.value)}
                 >
@@ -509,7 +517,7 @@ function FragmentRows({
               <label className="text-sm font-medium">
                 Mã giao dịch (nếu có)
                 <input
-                  className={`${inputClass} mt-1 block`}
+                  className={`${inputClass} mt-1 block w-auto`}
                   maxLength={100}
                   value={transactionCode}
                   onChange={(e) => setTransactionCode(e.target.value)}
@@ -520,7 +528,7 @@ function FragmentRows({
                 type="button"
                 disabled={saving}
                 onClick={onSubmit}
-                className="rounded-md bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {saving ? "Đang lưu..." : "Xác nhận thu"}
               </button>
@@ -528,7 +536,7 @@ function FragmentRows({
               <button
                 type="button"
                 onClick={onCancelPaying}
-                className="rounded-md border border-slate-400 px-4 py-2 hover:bg-white"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-white"
               >
                 Đóng
               </button>
@@ -554,9 +562,11 @@ function FragmentRows({
                       {methodLabels[p.method ?? ""] ?? p.method ?? "-"}
                       {p.transactionCode ? ` · ${p.transactionCode}` : ""} ·{" "}
                       {p.recordedBy} ·{" "}
-                      <strong>
-                        {p.status === "COMPLETED" ? "Hợp lệ" : "Đã hủy"}
-                      </strong>
+                      <StatusBadge
+                        status={p.status}
+                        label={p.status === "COMPLETED" ? "Hợp lệ" : "Đã hủy"}
+                        tone={p.status === "COMPLETED" ? "green" : "red"}
+                      />
                     </span>
 
                     {canPay && p.status === "COMPLETED" && (
@@ -564,7 +574,7 @@ function FragmentRows({
                         type="button"
                         disabled={saving}
                         onClick={() => onVoid(p.id)}
-                        className="rounded-md border border-red-400 px-3 py-1 text-red-700 hover:bg-red-50 disabled:opacity-60"
+                        className="rounded-lg border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50 disabled:opacity-60"
                       >
                         Hủy giao dịch
                       </button>

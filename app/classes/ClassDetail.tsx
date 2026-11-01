@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { callApi } from "@/lib/client-api";
 
 type Detail = {
@@ -36,12 +38,6 @@ const dayLabels: Record<number, string> = {
   7: "Chủ nhật",
 };
 
-const sessionLabels: Record<string, string> = {
-  SCHEDULED: "Chưa học",
-  DONE: "Đã học",
-  CANCELLED: "Đã hủy",
-};
-
 const inputClass =
   "rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900";
 
@@ -63,6 +59,11 @@ export default function ClassDetail({
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
+  const [confirmClearSchedule, setConfirmClearSchedule] = useState(false);
 
   const [candidateId, setCandidateId] = useState("");
   const [slots, setSlots] = useState<SlotForm[]>([
@@ -152,7 +153,7 @@ export default function ClassDetail({
                 status: classStatus === "ACTIVE" ? "CLOSED" : "ACTIVE",
               })
             }
-            className="rounded-md border border-slate-400 bg-white px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-60"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-60"
           >
             {classStatus === "ACTIVE" ? "Đóng lớp" : "Mở lại lớp"}
           </button>
@@ -185,7 +186,7 @@ export default function ClassDetail({
 
               if (ok) setCandidateId("");
             }}
-            className="rounded-md bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
           >
             Xếp vào lớp
           </button>
@@ -317,7 +318,7 @@ export default function ClassDetail({
                     slots,
                   })
                 }
-                className="rounded-md bg-blue-700 px-4 py-1 font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+                className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {busy ? "Đang tạo..." : "Tạo lịch & sinh buổi học"}
               </button>
@@ -329,11 +330,7 @@ export default function ClassDetail({
           <button
             type="button"
             disabled={busy}
-            onClick={() => {
-              if (window.confirm("Xóa toàn bộ lịch của lớp này?")) {
-                void run(`/api/classes/${classId}/schedule`, "DELETE");
-              }
-            }}
+            onClick={() => setConfirmClearSchedule(true)}
             className="mb-2 rounded-md border border-red-400 px-3 py-1 text-sm text-red-700 hover:bg-red-50 disabled:opacity-60"
           >
             Xóa toàn bộ lịch
@@ -350,6 +347,7 @@ export default function ClassDetail({
                   <th className="p-2">Phòng</th>
                   <th className="p-2">Giáo viên</th>
                   <th className="p-2">Trạng thái</th>
+                  {canSchedule && <th className="p-2" />}
                 </tr>
               </thead>
               <tbody>
@@ -362,8 +360,36 @@ export default function ClassDetail({
                     <td className="p-2">{s.roomCode}</td>
                     <td className="p-2">{s.teacherName}</td>
                     <td className="p-2">
-                      {sessionLabels[s.status] ?? s.status}
+                      <StatusBadge
+                        status={s.status}
+                        label={
+                          s.status === "SCHEDULED"
+                            ? "Chưa học"
+                            : s.status === "DONE"
+                              ? "Đã học"
+                              : undefined
+                        }
+                      />
                     </td>
+                    {canSchedule && (
+                      <td className="p-2 text-right">
+                        {s.status === "SCHEDULED" && (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() =>
+                              setCancelTarget({
+                                id: s.id,
+                                label: `${s.date} (${s.startTime}-${s.endTime})`,
+                              })
+                            }
+                            className="rounded-lg border border-red-300 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+                          >
+                            Hủy buổi
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -371,6 +397,44 @@ export default function ClassDetail({
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={cancelTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setCancelTarget(null);
+        }}
+        title="Hủy buổi học?"
+        description={`Buổi học ${cancelTarget?.label ?? ""} sẽ chuyển sang "Đã hủy" và không khôi phục được. Buổi đã có điểm danh sẽ không hủy được.`}
+        confirmLabel="Hủy buổi"
+        cancelLabel="Giữ lại"
+        destructive
+        loading={busy}
+        onConfirm={async () => {
+          if (!cancelTarget) return;
+
+          await run(
+            `/api/classes/${classId}/sessions/${cancelTarget.id}`,
+            "PATCH",
+            { status: "CANCELLED" },
+          );
+          setCancelTarget(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmClearSchedule}
+        onOpenChange={setConfirmClearSchedule}
+        title="Xóa toàn bộ lịch của lớp?"
+        description="Toàn bộ buổi học của lớp sẽ bị xóa theo quy tắc hiện có của hệ thống."
+        confirmLabel="Xóa lịch"
+        cancelLabel="Giữ lại"
+        destructive
+        loading={busy}
+        onConfirm={async () => {
+          await run(`/api/classes/${classId}/schedule`, "DELETE");
+          setConfirmClearSchedule(false);
+        }}
+      />
     </div>
   );
 }

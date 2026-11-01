@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import Link from "next/link";
+import { CalendarDays, CheckCircle2, Clock } from "lucide-react";
 
+import { inputClass } from "@/components/shared/FormField";
+import { Notice, type NoticeState } from "@/components/shared/Notice";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatCard } from "@/components/shared/StatCard";
 import { callApi } from "@/lib/client-api";
 
 type SessionItem = {
@@ -49,9 +53,6 @@ const options = [
   { value: "EXCUSED", label: "Có phép" },
 ];
 
-const inputClass =
-  "rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900";
-
 export default function AttendanceManager({
   canRecord,
 }: {
@@ -68,10 +69,7 @@ export default function AttendanceManager({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [notice, setNotice] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  const [notice, setNotice] = useState<NoticeState>(null);
 
   const loadSessions = useCallback(
     async (fromValue: string, toValue: string, classValue: string) => {
@@ -193,46 +191,50 @@ export default function AttendanceManager({
     }
   }
 
+  const fullyRecorded = sessions.filter(
+    (s) => s.studentCount > 0 && s.recordedCount >= s.studentCount,
+  ).length;
+
   const editable = canRecord && sheet !== null && !sheet.session.isFuture;
 
   return (
     <div className="text-slate-900">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white p-5">
-          <div>
-            <h1 className="text-2xl font-bold">Điểm danh</h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Chọn buổi học, đánh dấu từng học viên rồi bấm Lưu
-            </p>
-          </div>
+        <PageHeader
+          title="Điểm danh"
+          description="Chọn buổi học, đánh dấu từng học viên rồi bấm Lưu"
+        />
 
-          <Link
-            href="/dashboard"
-            className="rounded-md bg-slate-800 px-4 py-2 font-semibold text-white hover:bg-slate-900"
-          >
-            Dashboard
-          </Link>
-        </header>
+        <Notice notice={notice} onClose={() => setNotice(null)} />
 
-        {notice && (
-          <div
-            className={`rounded-md border p-3 text-sm ${
-              notice.type === "success"
-                ? "border-green-300 bg-green-50 text-green-900"
-                : "border-red-300 bg-red-50 text-red-900"
-            }`}
-          >
-            {notice.text}
-          </div>
-        )}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Buổi học trong khoảng lọc"
+            value={sessions.length}
+            icon={CalendarDays}
+            tone="blue"
+          />
+          <StatCard
+            label="Đã điểm danh đủ"
+            value={fullyRecorded}
+            icon={CheckCircle2}
+            tone="green"
+          />
+          <StatCard
+            label="Chưa điểm danh đủ"
+            value={sessions.length - fullyRecorded}
+            icon={Clock}
+            tone="amber"
+          />
+        </div>
 
-        <section className="rounded-lg border border-slate-300 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
           <div className="mb-4 flex flex-wrap items-end gap-3">
-            <label className="text-sm font-medium">
+            <label className="text-sm font-medium text-slate-700">
               Từ ngày
               <input
                 type="date"
-                className={`${inputClass} mt-1 block`}
+                className={`${inputClass} mt-1 block w-auto`}
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
               />
@@ -242,7 +244,7 @@ export default function AttendanceManager({
               Đến ngày
               <input
                 type="date"
-                className={`${inputClass} mt-1 block`}
+                className={`${inputClass} mt-1 block w-auto`}
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
               />
@@ -251,7 +253,7 @@ export default function AttendanceManager({
             <label className="text-sm font-medium">
               Lớp
               <select
-                className={`${inputClass} mt-1 block`}
+                className={`${inputClass} mt-1 block w-auto`}
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}
               >
@@ -268,15 +270,15 @@ export default function AttendanceManager({
               type="button"
               onClick={() => void loadSessions(from, to, classFilter)}
               disabled={loading}
-              className="rounded-md bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               {loading ? "Đang tải..." : "Lọc"}
             </button>
           </div>
 
-          <div className="max-h-80 overflow-auto rounded-md border border-slate-300">
+          <div className="max-h-80 overflow-auto rounded-lg border border-slate-200">
             <table className="w-full min-w-[700px] text-left text-sm">
-              <thead className="sticky top-0 bg-slate-100 text-slate-600">
+              <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="p-2">Ngày</th>
                   <th className="p-2">Giờ</th>
@@ -312,7 +314,7 @@ export default function AttendanceManager({
                       <button
                         type="button"
                         onClick={() => void openSheet(s.id)}
-                        className="rounded-md border border-slate-400 px-3 py-1 hover:bg-slate-100"
+                        className="rounded-lg border border-slate-300 px-3 py-1 hover:bg-slate-100"
                       >
                         {canRecord ? "Điểm danh" : "Xem"}
                       </button>
@@ -325,7 +327,7 @@ export default function AttendanceManager({
         </section>
 
         {sheet && (
-          <section className="rounded-lg border border-slate-300 bg-white p-5">
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">
                 {sheet.session.classCode} - {sheet.session.className} ·{" "}
@@ -347,7 +349,7 @@ export default function AttendanceManager({
                       return next;
                     })
                   }
-                  className="rounded-md border border-slate-400 px-3 py-1 text-sm hover:bg-slate-100"
+                  className="rounded-lg border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100"
                 >
                   Tất cả có mặt
                 </button>
@@ -355,7 +357,7 @@ export default function AttendanceManager({
             </div>
 
             {sheet.session.isFuture && (
-              <p className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                 Chưa đến ngày học nên chưa thể điểm danh.
               </p>
             )}
@@ -426,7 +428,7 @@ export default function AttendanceManager({
                 type="button"
                 onClick={() => void save()}
                 disabled={saving}
-                className="mt-4 rounded-md bg-blue-700 px-5 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+                className="mt-4 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {saving ? "Đang lưu..." : "Lưu điểm danh"}
               </button>

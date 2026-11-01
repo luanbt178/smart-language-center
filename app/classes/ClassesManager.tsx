@@ -7,10 +7,28 @@ import {
   useState,
 } from "react";
 
-import Link from "next/link";
+import {
+  CalendarDays,
+  CheckCircle2,
+  GraduationCap,
+  RefreshCw,
+  Users,
+} from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { inputClass } from "@/components/shared/FormField";
+import { Notice, type NoticeState } from "@/components/shared/Notice";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatCard } from "@/components/shared/StatCard";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import { callApi } from "@/lib/client-api";
 import ClassDetail from "./ClassDetail";
+import {
+  RoomList,
+  TeacherList,
+  type RoomItem,
+  type TeacherItem,
+} from "./RoomTeacherLists";
 
 type ClassItem = {
   id: string;
@@ -32,22 +50,6 @@ type ClassItem = {
 type Option = { id: string; label: string };
 type RoomOption = Option & { branchId: string };
 
-type RoomItem = {
-  id: string;
-  branchName: string;
-  code: string;
-  name: string | null;
-  capacity: number;
-  status: string;
-};
-
-type TeacherItem = {
-  id: string;
-  teacherCode: string;
-  fullName: string;
-  email: string;
-};
-
 type Candidate = {
   id: string;
   username: string;
@@ -56,14 +58,6 @@ type Candidate = {
 };
 
 type Branch = { id: string; name: string };
-
-const inputClass =
-  "w-full rounded-md border border-slate-400 bg-white px-3 py-2 text-slate-900";
-
-const statusLabels: Record<string, string> = {
-  ACTIVE: "Đang mở",
-  CLOSED: "Đã đóng",
-};
 
 export default function ClassesManager({
   canCreate,
@@ -103,10 +97,7 @@ export default function ClassesManager({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [notice, setNotice] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  const [notice, setNotice] = useState<NoticeState>(null);
 
   const notify = useCallback(
     (type: "success" | "error", text: string) => setNotice({ type, text }),
@@ -214,52 +205,62 @@ export default function ClassesManager({
     );
   }
 
+  const activeClasses = classes.filter((c) => c.status === "ACTIVE").length;
+  const closedClasses = classes.filter((c) => c.status === "CLOSED").length;
+  const totalStudents = classes.reduce((sum, c) => sum + c.studentCount, 0);
+  const totalSessions = classes.reduce((sum, c) => sum + c.sessionCount, 0);
+
   return (
     <div className="text-slate-900">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white p-5">
-          <div>
-            <h1 className="text-2xl font-bold">Lớp học &amp; lịch học</h1>
-
-            <p className="mt-1 text-sm text-slate-600">
-              Phòng học, giáo viên, lớp, xếp học viên và lập lịch
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <button
+        <PageHeader
+          title="Lớp học & lịch học"
+          description="Phòng học, giáo viên, lớp, xếp học viên và lập lịch"
+          actions={
+            <Button
               type="button"
+              variant="outline"
               onClick={() => void loadData()}
               disabled={loading}
-              className="rounded-md border border-slate-400 bg-white px-4 py-2 font-medium text-slate-800 hover:bg-slate-100 disabled:opacity-60"
             >
+              <RefreshCw className={loading ? "animate-spin" : ""} />
               {loading ? "Đang tải..." : "Tải lại"}
-            </button>
+            </Button>
+          }
+        />
 
-            <Link
-              href="/dashboard"
-              className="rounded-md bg-slate-800 px-4 py-2 font-semibold text-white hover:bg-slate-900"
-            >
-              Dashboard
-            </Link>
-          </div>
-        </header>
+        <Notice notice={notice} onClose={() => setNotice(null)} />
 
-        {notice && (
-          <div
-            className={`rounded-md border p-3 text-sm ${
-              notice.type === "success"
-                ? "border-green-300 bg-green-50 text-green-900"
-                : "border-red-300 bg-red-50 text-red-900"
-            }`}
-          >
-            {notice.text}
-          </div>
-        )}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Lớp đang mở"
+            value={activeClasses}
+            icon={GraduationCap}
+            tone="green"
+          />
+          <StatCard
+            label="Lớp đã đóng"
+            value={closedClasses}
+            icon={CheckCircle2}
+            tone="slate"
+          />
+          <StatCard
+            label="Học viên đang học"
+            value={totalStudents}
+            icon={Users}
+            tone="blue"
+          />
+          <StatCard
+            label="Tổng số buổi học"
+            value={totalSessions}
+            icon={CalendarDays}
+            tone="amber"
+          />
+        </div>
 
         {canCreate && (
           <section className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-lg border border-slate-300 bg-white p-5">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
               <h2 className="mb-3 text-lg font-semibold">Phòng học</h2>
 
               <form onSubmit={handleRoom} className="grid gap-3 sm:grid-cols-2">
@@ -314,32 +315,25 @@ export default function ClassesManager({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-md bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60 sm:col-span-2"
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 sm:col-span-2"
                 >
                   Thêm phòng
                 </button>
               </form>
 
-              <ul className="mt-3 max-h-40 divide-y divide-slate-200 overflow-y-auto text-sm">
-                {rooms.length === 0 && (
-                  <li className="py-2 text-slate-500">Chưa có phòng nào.</li>
-                )}
-                {rooms.map((r) => (
-                  <li key={r.id} className="py-2">
-                    {r.code}
-                    {r.name ? ` - ${r.name}` : ""} ({r.capacity} chỗ) -{" "}
-                    {r.branchName}
-                  </li>
-                ))}
-              </ul>
+              <RoomList
+                rooms={rooms}
+                notify={notify}
+                onChanged={() => void loadData()}
+              />
             </div>
 
-            <div className="rounded-lg border border-slate-300 bg-white p-5">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
               <h2 className="mb-3 text-lg font-semibold">Giáo viên</h2>
 
               <form onSubmit={handleTeacher} className="flex flex-wrap gap-3">
                 <select
-                  className={`${inputClass} flex-1`}
+                  className={`${inputClass} min-w-48 flex-1`}
                   value={teacherUserId}
                   onChange={(e) => setTeacherUserId(e.target.value)}
                   required
@@ -357,30 +351,23 @@ export default function ClassesManager({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-md bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                 >
                   Tạo hồ sơ giáo viên
                 </button>
               </form>
 
-              <ul className="mt-3 max-h-40 divide-y divide-slate-200 overflow-y-auto text-sm">
-                {teachers.length === 0 && (
-                  <li className="py-2 text-slate-500">
-                    Chưa có hồ sơ giáo viên.
-                  </li>
-                )}
-                {teachers.map((t) => (
-                  <li key={t.id} className="py-2">
-                    {t.teacherCode} - {t.fullName} ({t.email})
-                  </li>
-                ))}
-              </ul>
+              <TeacherList
+                teachers={teachers}
+                notify={notify}
+                onChanged={() => void loadData()}
+              />
             </div>
           </section>
         )}
 
         {canCreate && (
-          <section className="rounded-lg border border-slate-300 bg-white p-5">
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
             <h2 className="mb-4 text-lg font-semibold">Tạo lớp học</h2>
 
             <form onSubmit={handleClass} className="grid gap-4 md:grid-cols-4">
@@ -445,7 +432,7 @@ export default function ClassesManager({
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-md bg-blue-700 px-5 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60 md:col-span-4"
+                className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 md:col-span-4"
               >
                 {saving ? "Đang lưu..." : "Tạo lớp"}
               </button>
@@ -453,7 +440,7 @@ export default function ClassesManager({
           </section>
         )}
 
-        <section className="rounded-lg border border-slate-300 bg-white">
+        <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
           <h2 className="p-5 pb-3 text-lg font-semibold">
             Danh sách lớp ({classes.length})
           </h2>
@@ -461,7 +448,7 @@ export default function ClassesManager({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
               <thead>
-                <tr className="border-y border-slate-300 text-slate-600">
+                <tr className="border-y border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <th className="p-3">Lớp</th>
                   <th className="p-3">Khóa học</th>
                   <th className="p-3">Phòng</th>
@@ -501,14 +488,19 @@ export default function ClassesManager({
                     <td className="p-3">{c.teacherName ?? "-"}</td>
                     <td className="p-3">{c.studentCount}</td>
                     <td className="p-3">{c.sessionCount}</td>
-                    <td className="p-3">{statusLabels[c.status] ?? c.status}</td>
+                    <td className="p-3">
+                      <StatusBadge
+                        status={c.status}
+                        label={c.status === "ACTIVE" ? "Đang mở" : undefined}
+                      />
+                    </td>
                     <td className="p-3">
                       <button
                         type="button"
                         onClick={() =>
                           setOpenId(openId === c.id ? null : c.id)
                         }
-                        className="rounded-md border border-slate-400 px-3 py-1 hover:bg-slate-100"
+                        className="rounded-lg border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100"
                       >
                         {openId === c.id ? "Thu gọn" : "Chi tiết"}
                       </button>
