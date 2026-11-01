@@ -64,6 +64,8 @@ export default function ClassDetail({
     label: string;
   } | null>(null);
   const [confirmClearSchedule, setConfirmClearSchedule] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [clearError, setClearError] = useState<string | null>(null);
 
   const [candidateId, setCandidateId] = useState("");
   const [slots, setSlots] = useState<SlotForm[]>([
@@ -330,7 +332,10 @@ export default function ClassDetail({
           <button
             type="button"
             disabled={busy}
-            onClick={() => setConfirmClearSchedule(true)}
+            onClick={() => {
+              setClearError(null);
+              setConfirmClearSchedule(true);
+            }}
             className="mb-2 rounded-md border border-red-400 px-3 py-1 text-sm text-red-700 hover:bg-red-50 disabled:opacity-60"
           >
             Xóa toàn bộ lịch
@@ -377,12 +382,13 @@ export default function ClassDetail({
                           <button
                             type="button"
                             disabled={busy}
-                            onClick={() =>
+                            onClick={() => {
+                              setCancelError(null);
                               setCancelTarget({
                                 id: s.id,
                                 label: `${s.date} (${s.startTime}-${s.endTime})`,
-                              })
-                            }
+                              });
+                            }}
                             className="rounded-lg border border-red-300 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
                           >
                             Hủy buổi
@@ -409,15 +415,29 @@ export default function ClassDetail({
         cancelLabel="Giữ lại"
         destructive
         loading={busy}
+        error={cancelError}
         onConfirm={async () => {
           if (!cancelTarget) return;
 
-          await run(
+          setBusy(true);
+
+          const result = await callApi(
             `/api/classes/${classId}/sessions/${cancelTarget.id}`,
             "PATCH",
             { status: "CANCELLED" },
           );
+
+          setBusy(false);
+
+          if (!result.ok) {
+            setCancelError(result.message);
+            return;
+          }
+
+          notify("success", result.message);
           setCancelTarget(null);
+          await load();
+          onChanged();
         }}
       />
 
@@ -430,9 +450,26 @@ export default function ClassDetail({
         cancelLabel="Giữ lại"
         destructive
         loading={busy}
+        error={clearError}
         onConfirm={async () => {
-          await run(`/api/classes/${classId}/schedule`, "DELETE");
+          setBusy(true);
+
+          const result = await callApi(
+            `/api/classes/${classId}/schedule`,
+            "DELETE",
+          );
+
+          setBusy(false);
+
+          if (!result.ok) {
+            setClearError(result.message);
+            return;
+          }
+
+          notify("success", result.message);
           setConfirmClearSchedule(false);
+          await load();
+          onChanged();
         }}
       />
     </div>

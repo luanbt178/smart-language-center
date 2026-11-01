@@ -83,6 +83,7 @@ export default function PaymentsManager({
   const [saving, setSaving] = useState(false);
 
   const [voidTarget, setVoidTarget] = useState<string | null>(null);
+  const [voidError, setVoidError] = useState<string | null>(null);
 
   const [notice, setNotice] = useState<NoticeState>(null);
 
@@ -209,24 +210,26 @@ export default function PaymentsManager({
     }
   }
 
-  async function voidPayment(paymentId: string) {
+  async function voidPayment(paymentId: string): Promise<boolean> {
     setSaving(true);
 
     const result = await callApi(`/api/payments/${paymentId}`, "DELETE");
 
-    setNotice({
-      type: result.ok ? "success" : "error",
-      text: result.message,
-    });
     setSaving(false);
 
-    if (result.ok) {
-      await loadData();
-
-      if (historyId) {
-        await loadHistory(historyId);
-      }
+    if (!result.ok) {
+      setVoidError(result.message);
+      return false;
     }
+
+    setNotice({ type: "success", text: result.message });
+    await loadData();
+
+    if (historyId) {
+      await loadHistory(historyId);
+    }
+
+    return true;
   }
 
   async function toggleHistory(id: string) {
@@ -359,7 +362,10 @@ export default function PaymentsManager({
                       onCancelPaying={() => setPayingId(null)}
                       onSubmit={() => void submitPayment()}
                       onToggleHistory={() => void toggleHistory(row.id)}
-                      onVoid={(paymentId) => setVoidTarget(paymentId)}
+                      onVoid={(paymentId) => {
+                        setVoidError(null);
+                        setVoidTarget(paymentId);
+                      }}
                     />
                   );
                 })}
@@ -380,11 +386,13 @@ export default function PaymentsManager({
         cancelLabel="Giữ lại"
         destructive
         loading={saving}
+        error={voidError}
         onConfirm={async () => {
           if (!voidTarget) return;
 
-          await voidPayment(voidTarget);
-          setVoidTarget(null);
+          const ok = await voidPayment(voidTarget);
+
+          if (ok) setVoidTarget(null);
         }}
       />
     </div>

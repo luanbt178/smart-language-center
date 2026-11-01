@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import Link from "next/link";
+import { CalendarCheck, GraduationCap, Wallet } from "lucide-react";
+
+import { Notice } from "@/components/shared/Notice";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatCard } from "@/components/shared/StatCard";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmptyState, LoadingState } from "@/components/shared/states";
 import { ASSESSMENT_TYPE_LABELS } from "@/lib/assessments";
 
 type Child = {
@@ -106,37 +112,20 @@ export default function PortalView({ isParent }: { isParent: boolean }) {
   return (
     <div className="text-slate-900">
       <div className="mx-auto max-w-5xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-300 bg-white p-5">
-          <div>
-            <h1 className="text-2xl font-bold">
-              {isParent ? "Thông tin của con" : "Thông tin học tập"}
-            </h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Lịch học, chuyên cần và học phí (chỉ xem)
-            </p>
-          </div>
+        <PageHeader
+          title={isParent ? "Thông tin của con" : "Thông tin học tập"}
+          description="Lịch học, chuyên cần và học phí (chỉ xem)"
+        />
 
-          <Link
-            href="/dashboard"
-            className="rounded-md bg-slate-800 px-4 py-2 font-semibold text-white hover:bg-slate-900"
-          >
-            Dashboard
-          </Link>
-        </header>
+        <Notice notice={error ? { type: "error", text: error } : null} />
 
-        {error && (
-          <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-900">
-            {error}
-          </div>
-        )}
-
-        {loading && <p className="text-sm text-slate-600">Đang tải...</p>}
+        {loading && <LoadingState />}
 
         {!loading && !error && children.length === 0 && (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
-            Chưa tìm thấy hồ sơ học viên liên kết với tài khoản của bạn. Vui
-            lòng liên hệ trung tâm để được liên kết.
-          </div>
+          <EmptyState
+            title="Chưa có hồ sơ liên kết"
+            description="Chưa tìm thấy hồ sơ học viên liên kết với tài khoản của bạn. Vui lòng liên hệ trung tâm để được liên kết."
+          />
         )}
 
         {children.map((child) => {
@@ -148,17 +137,45 @@ export default function PortalView({ isParent }: { isParent: boolean }) {
             (child.attendanceCounts.PRESENT ?? 0) +
             (child.attendanceCounts.LATE ?? 0);
           const rate = total === 0 ? null : Math.round((attended / total) * 100);
+          const owed = child.invoices.reduce(
+            (sum, i) =>
+              i.status === "ISSUED" || i.status === "PARTIAL"
+                ? sum + Number(i.remainingAmount)
+                : sum,
+            0,
+          );
 
           return (
             <section
               key={child.id}
-              className="space-y-5 rounded-lg border border-slate-300 bg-white p-5"
+              className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
             >
               <div>
                 <h2 className="text-xl font-bold">{child.fullName}</h2>
                 <p className="text-sm text-slate-600">
                   {child.studentCode} · {child.branchName}
                 </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <StatCard
+                  label="Lớp đang học"
+                  value={child.classes.length}
+                  icon={GraduationCap}
+                  tone="blue"
+                />
+                <StatCard
+                  label="Tỷ lệ tham dự"
+                  value={rate === null ? "-" : `${rate}%`}
+                  icon={CalendarCheck}
+                  tone="green"
+                />
+                <StatCard
+                  label="Học phí còn nợ"
+                  value={`${owed.toLocaleString("vi-VN")} đ`}
+                  icon={Wallet}
+                  tone={owed > 0 ? "amber" : "slate"}
+                />
               </div>
 
               <div>
@@ -222,9 +239,10 @@ export default function PortalView({ isParent }: { isParent: boolean }) {
                       {child.recentAttendance.map((r, index) => (
                         <li key={index} className="py-1">
                           {r.date} · {r.className} ·{" "}
-                          <strong>
-                            {attendanceLabels[r.status] ?? r.status}
-                          </strong>
+                          <StatusBadge
+                            status={r.status}
+                            label={attendanceLabels[r.status]}
+                          />
                           {r.note ? ` · ${r.note}` : ""}
                         </li>
                       ))}
@@ -267,7 +285,11 @@ export default function PortalView({ isParent }: { isParent: boolean }) {
                         <strong>{i.invoiceNo}</strong> · {i.courseName} · Phải
                         đóng {money(i.amount)} · Đã đóng {money(i.paidAmount)} ·
                         Còn {money(i.remainingAmount)} ·{" "}
-                        {invoiceLabels[i.status] ?? i.status}
+                        <StatusBadge
+                          status={i.status}
+                          label={invoiceLabels[i.status]}
+                          tone={i.status === "ISSUED" ? "amber" : undefined}
+                        />
                         {i.dueDate ? ` · hạn ${i.dueDate}` : ""}
                       </li>
                     ))}

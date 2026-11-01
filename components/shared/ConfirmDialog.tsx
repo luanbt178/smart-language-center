@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { Notice } from "./Notice"
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ type ConfirmDialogProps = {
   cancelLabel?: string
   destructive?: boolean
   loading?: boolean
+  error?: string | null
   onConfirm: () => void
 }
 
@@ -31,6 +33,7 @@ export function ConfirmDialog({
   cancelLabel = "Hủy",
   destructive = false,
   loading = false,
+  error = null,
   onConfirm,
 }: ConfirmDialogProps) {
   return (
@@ -40,6 +43,8 @@ export function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
+
+        {error && <Notice notice={{ type: "error", text: error }} />}
 
         <DialogFooter>
           <Button
