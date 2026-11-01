@@ -4,6 +4,7 @@ import { ArrowRight, GraduationCap, ShieldCheck } from "lucide-react"
 
 import { getCurrentSession } from "@/lib/auth"
 import { getVisibleNav } from "@/lib/navigation"
+import DashboardStats from "./DashboardStats"
 
 export default async function DashboardPage() {
   const session = await getCurrentSession()
@@ -42,6 +43,8 @@ export default async function DashboardPage() {
           </div>
         </div>
       </section>
+
+    {session.permissions.includes("REPORT_VIEW") && <DashboardStats />}
 
       <section>
         <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
