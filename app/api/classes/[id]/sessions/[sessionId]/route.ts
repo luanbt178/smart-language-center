@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiPermission } from "@/lib/permissions";
+import { writeAudit } from "@/lib/audit";
 import { findAccessibleClass } from "@/lib/class-access";
 import { ApiError } from "@/lib/api-error";
 
@@ -89,6 +90,14 @@ export async function PATCH(request: Request, { params }: Params) {
       await tx.$executeRaw`
         UPDATE class_sessions SET status = 'CANCELLED' WHERE id = ${sessionKey}
       `;
+    });
+
+    await writeAudit({
+      userId: auth.session.userId,
+      action: "SESSION_CANCEL",
+      entityType: "class_session",
+      entityId: sessionKey,
+      newData: { classId: classId.toString() },
     });
 
     return NextResponse.json({

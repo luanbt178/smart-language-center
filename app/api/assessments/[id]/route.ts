@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiPermission } from "@/lib/permissions";
+import { writeAudit } from "@/lib/audit";
 import { findAccessibleClass } from "@/lib/class-access";
 import { ApiError } from "@/lib/api-error";
 import { parseScores } from "@/lib/assessments";
@@ -249,6 +250,14 @@ export async function PUT(request: Request, { params }: Params) {
       { timeout: 30000, maxWait: 10000 },
     );
 
+    await writeAudit({
+      userId: auth.session.userId,
+      action: "ASSESSMENT_SCORES_SAVE",
+      entityType: "assessment",
+      entityId: assessment.id,
+      newData: { students: scores.length },
+    });
+
     return NextResponse.json({
       success: true,
       message: `Đã lưu điểm cho ${scores.length} học viên.`,
@@ -339,6 +348,13 @@ export async function PATCH(request: Request, { params }: Params) {
       await tx.$executeRaw`
         UPDATE assessments SET status = 'PUBLISHED' WHERE id = ${assessment.id}
       `;
+    });
+
+    await writeAudit({
+      userId: auth.session.userId,
+      action: "ASSESSMENT_PUBLISH",
+      entityType: "assessment",
+      entityId: assessment.id,
     });
 
     return NextResponse.json({

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiPermission } from "@/lib/permissions";
+import { writeAudit } from "@/lib/audit";
 import { ApiError } from "@/lib/api-error";
 import { recomputeInvoice } from "@/lib/receivables";
 
@@ -77,6 +78,13 @@ export async function DELETE(_request: Request, { params }: Params) {
       },
       { timeout: 20000, maxWait: 10000 },
     );
+
+    await writeAudit({
+      userId: auth.session.userId,
+      action: "PAYMENT_VOID",
+      entityType: "payment",
+      entityId: paymentId,
+    });
 
     return NextResponse.json({
       success: true,

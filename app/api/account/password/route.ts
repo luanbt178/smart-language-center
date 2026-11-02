@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSession } from "@/lib/auth";
+import { writeAudit } from "@/lib/audit";
 
 // Người dùng tự đổi mật khẩu của chính mình.
 export async function POST(request: Request) {
@@ -76,6 +77,13 @@ export async function POST(request: Request) {
     await prisma.$executeRaw`
       UPDATE users SET password_hash = ${hash} WHERE id = ${userId}
     `;
+
+    await writeAudit({
+      userId: session.userId,
+      action: "PASSWORD_CHANGE",
+      entityType: "user",
+      entityId: userId,
+    });
 
     return NextResponse.json({
       success: true,
