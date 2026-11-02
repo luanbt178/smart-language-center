@@ -157,7 +157,7 @@ export const navGroups: NavGroup[] = [
       {
         key: "ai",
         title: "Trợ lý giảng dạy AI",
-        description: "Hỗ trợ soạn giáo án và nhận xét (đang phát triển).",
+        description: "Gợi ý giáo án, bài tập và nhận xét học viên.",
         href: "/features/ai",
         icon: BrainCircuit,
         permissions: ["AI_USE"],
