@@ -39,6 +39,7 @@ const ACTIONS: Record<string, { label: string; tone: Tone }> = {
   SESSION_CANCEL: { label: "Hủy buổi học", tone: "amber" },
   ROOM_UPDATE: { label: "Sửa phòng học", tone: "blue" },
   TEACHER_UPDATE: { label: "Sửa giáo viên", tone: "blue" },
+  ROLE_PERMISSIONS_UPDATE: { label: "Đổi quyền vai trò", tone: "amber" },
 };
 
 export default function AuditViewer() {
