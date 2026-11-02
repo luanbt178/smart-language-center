@@ -3,6 +3,19 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/auth";
+import { writeAudit } from "@/lib/audit";
+import { createFailureLimiter } from "@/lib/rate-limit";
+
+// Khóa tạm khi đăng nhập sai nhiều lần (15 phút).
+const WINDOW_MS = 15 * 60 * 1000;
+const ipLimiter = createFailureLimiter(5, WINDOW_MS); // theo máy + tên đăng nhập
+const userLimiter = createFailureLimiter(10, WINDOW_MS); // theo tên đăng nhập
+
+function clientIp(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+
+  return forwarded?.split(",")[0]?.trim() || "unknown";
+}
 
 type UserRow = {
   id: bigint;
@@ -36,6 +49,29 @@ export async function POST(request: Request) {
       );
     }
 
+    const ip = clientIp(request);
+    const ipKey = `${ip}|${username.toLowerCase()}`;
+    const userKey = username.toLowerCase();
+    const wait = Math.max(
+      ipLimiter.retryAfter(ipKey),
+      userLimiter.retryAfter(userKey),
+    );
+
+    if (wait > 0) {
+      await writeAudit({
+        action: "LOGIN_LOCKED",
+        entityType: "user",
+        newData: { username: username.slice(0, 100), ip },
+      });
+
+      return NextResponse.json(
+        {
+          error: `Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau ${Math.ceil(wait / 60)} phút.`,
+        },
+        { status: 429 },
+      );
+    }
+
     const users =
       await prisma.$queryRaw<UserRow[]>`
         SELECT
@@ -56,6 +92,15 @@ export async function POST(request: Request) {
       `;
 
     if (users.length === 0) {
+      ipLimiter.fail(ipKey);
+      userLimiter.fail(userKey);
+
+      await writeAudit({
+        action: "LOGIN_FAILED",
+        entityType: "user",
+        newData: { username: username.slice(0, 100), ip, reason: "unknown_user" },
+      });
+
       return NextResponse.json(
         {
           error:
@@ -76,6 +121,17 @@ export async function POST(request: Request) {
       );
 
     if (!passwordValid) {
+      ipLimiter.fail(ipKey);
+      userLimiter.fail(userKey);
+
+      await writeAudit({
+        userId: user.id,
+        action: "LOGIN_FAILED",
+        entityType: "user",
+        entityId: user.id,
+        newData: { ip, reason: "wrong_password" },
+      });
+
       return NextResponse.json(
         {
           error:
@@ -86,6 +142,9 @@ export async function POST(request: Request) {
         },
       );
     }
+
+    ipLimiter.reset(ipKey);
+    userLimiter.reset(userKey);
 
     const permissionRows =
       await prisma.$queryRaw<PermissionRow[]>`
@@ -112,6 +171,14 @@ export async function POST(request: Request) {
       role: user.role_code,
       roleName: user.role_name,
       permissions,
+    });
+
+    await writeAudit({
+      userId: user.id,
+      action: "LOGIN_SUCCESS",
+      entityType: "user",
+      entityId: user.id,
+      newData: { ip },
     });
 
     return NextResponse.json({

@@ -218,8 +218,7 @@ export default function LessonPlanner() {
           </div>
 
           <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-            Nội dung do AI tạo, chỉ để tham khảo. Hãy kiểm tra và chỉnh sửa
-            trước khi dùng trên lớp.
+             Hãy kiểm tra và chỉnh sửa trước khi dùng trên lớp.
           </p>
 
           <div className="whitespace-pre-wrap text-sm leading-6 text-slate-800">
