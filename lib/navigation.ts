@@ -4,6 +4,7 @@ import {
   BookOpen,
   BrainCircuit,
   CalendarCheck,
+  CalendarDays,
   ClipboardCheck,
   ClipboardList,
   CreditCard,
@@ -135,6 +136,15 @@ export const navGroups: NavGroup[] = [
         permissions: ["CLASS_VIEW"],
         excludeRoles: ["STUDENT", "PARENT"],
         titleByRole: { TEACHER: "Lớp của tôi" },
+      },
+      {
+        key: "schedule",
+        title: "Lịch học tuần",
+        description: "Lịch các buổi học theo tuần, lọc theo lớp, giáo viên, phòng.",
+        href: "/schedule",
+        icon: CalendarDays,
+        permissions: ["SCHEDULE_VIEW"],
+        excludeRoles: ["STUDENT", "PARENT"],
       },
       {
         key: "attendance",
