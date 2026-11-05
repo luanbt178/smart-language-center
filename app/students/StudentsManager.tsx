@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from "react"
+import Link from "next/link"
 import {
   ArrowLeft,
   ArrowRight,
@@ -826,9 +827,12 @@ export default function StudentsManager({
                             .toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <p className="max-w-52 truncate font-semibold text-slate-900">
+                          <Link
+                            href={`/students/${student.id}`}
+                            className="block max-w-52 truncate font-semibold text-slate-900 hover:text-blue-700 hover:underline"
+                          >
                             {student.fullName}
-                          </p>
+                          </Link>
                           <p className="mt-1 text-xs font-medium text-slate-500">
                             {student.studentCode}
                           </p>
