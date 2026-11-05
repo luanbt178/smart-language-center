@@ -60,6 +60,21 @@ function money(value: string): string {
     : value;
 }
 
+function downloadCsv(filename: string, rows: string[][]) {
+  const escape = (cell: string) => `"${cell.replace(/"/g, '""')}"`;
+  const content = rows.map((row) => row.map(escape).join(",")).join("\r\n");
+  // \uFEFF giúp Excel đọc đúng tiếng Việt có dấu.
+  const blob = new Blob(["\uFEFF" + content], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function PaymentsManager({
   canPay,
   today,
@@ -153,6 +168,40 @@ export default function PaymentsManager({
       return matchesKeyword && matchesStatus;
     });
   }, [invoices, search, filterStatus]);
+
+  function exportCsv() {
+    const header = [
+      "Số hóa đơn",
+      "Mã học viên",
+      "Học viên",
+      "Khóa học",
+      "Đợt mở",
+      "Chi nhánh",
+      "Ngày lập",
+      "Hạn thanh toán",
+      "Số tiền",
+      "Đã thu",
+      "Còn lại",
+      "Trạng thái",
+    ];
+
+    const body = filtered.map((row) => [
+      row.invoiceNo,
+      row.studentCode,
+      row.studentName,
+      row.courseName,
+      row.offeringCode,
+      row.branchName,
+      row.issuedAt,
+      row.dueDate ?? "",
+      row.amount,
+      row.paidAmount,
+      row.remainingAmount,
+      statusLabels[row.status] ?? row.status,
+    ]);
+
+    downloadCsv(`hoa-don-${today}.csv`, [header, ...body]);
+  }
 
   const totals = useMemo(() => {
     let billed = 0;
@@ -250,15 +299,25 @@ export default function PaymentsManager({
           title="Hóa đơn & thanh toán"
           description="Thu học phí, theo dõi công nợ"
           actions={
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => void loadData()}
-              disabled={loading}
-            >
-              <RefreshCw className={loading ? "animate-spin" : ""} />
-              {loading ? "Đang tải..." : "Tải lại"}
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={exportCsv}
+                disabled={filtered.length === 0}
+              >
+                Xuất CSV
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void loadData()}
+                disabled={loading}
+              >
+                <RefreshCw className={loading ? "animate-spin" : ""} />
+                {loading ? "Đang tải..." : "Tải lại"}
+              </Button>
+            </>
           }
         />
 
