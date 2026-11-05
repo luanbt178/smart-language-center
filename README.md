@@ -15,21 +15,33 @@ Hệ thống quản lý trung tâm ngoại ngữ: tuyển sinh, học viên, ghi
 
 1. Cài Node.js 20 trở lên và MySQL/MariaDB.
 2. Tạo cơ sở dữ liệu và nạp cấu trúc bảng (thư mục `prisma/sql`).
-3. Tạo file `.env` (đối chiếu tên biến với file `.env` hiện có):
-   - `DATABASE_URL` chuỗi kết nối cơ sở dữ liệu
-   - `JWT_SECRET` khóa ký JWT (chuỗi dài, ngẫu nhiên)
-   - `GEMINI_API_KEY` khóa Google Gemini (tùy chọn)
+3. Tạo file `.env` (xem `.env.example`):
+
+   - `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`: kết nối MySQL/MariaDB
+   - `DATABASE_URL`: chuỗi kết nối dạng `mysql://user:pass@host:3306/ten_db` (chỉ dùng cho lệnh Prisma)
+   - `AUTH_SECRET`: khóa ký JWT (chuỗi dài, ngẫu nhiên)
+   - `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`: cấu hình AI (tùy chọn)
+   - `NEXT_PUBLIC_APP_URL`: địa chỉ của ứng dụng
 4. Cài và chạy:
+
    ```bash
    npm install
    npx prisma generate
    npm run dev
    ```
 5. Nạp dữ liệu mẫu:
+
    ```bash
    npx tsx scripts/seed-demo.ts
    npx tsx scripts/seed-bulk.ts small   # small | medium | large, thêm "reset" để xóa dữ liệu demo
    ```
+6. Tạo file `.env` (xem `.env.example`):
+
+   - `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`: kết nối MySQL/MariaDB
+   - `DATABASE_URL`: chuỗi kết nối dạng `mysql://user:pass@host:3306/ten_db` (chỉ dùng cho lệnh Prisma)
+   - `AUTH_SECRET`: khóa ký JWT (chuỗi dài, ngẫu nhiên)
+   - `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`: cấu hình AI (tùy chọn)
+   - `NEXT_PUBLIC_APP_URL`: địa chỉ của ứng dụ
 
 ## Cấu trúc thư mục
 
