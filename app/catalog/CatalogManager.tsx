@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -170,10 +171,12 @@ function DataTable({
   title,
   headers,
   rows,
+  onEdit,
 }: {
   title: string;
   headers: string[];
   rows: TableCell[][];
+  onEdit?: (index: number) => void;
 }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
@@ -182,9 +185,7 @@ function DataTable({
       </h2>
 
       {rows.length === 0 ? (
-        <p className="text-sm text-slate-600">
-          Chưa có dữ liệu.
-        </p>
+        <p className="text-sm text-slate-600">Chưa có dữ liệu.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
@@ -195,6 +196,7 @@ function DataTable({
                     {header}
                   </th>
                 ))}
+                {onEdit && <th className="p-3">Thao tác</th>}
               </tr>
             </thead>
 
@@ -206,13 +208,22 @@ function DataTable({
                 >
                   {row.map((cell, cellIndex) => (
                     <td key={cellIndex} className="p-3">
-                      {cell === null ||
-                      cell === undefined ||
-                      cell === ""
+                      {cell === null || cell === undefined || cell === ""
                         ? "—"
                         : String(cell)}
                     </td>
                   ))}
+                  {onEdit && (
+                    <td className="p-3">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(index)}
+                        className="text-sm font-semibold text-blue-700 hover:underline"
+                      >
+                        Sửa
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -389,6 +400,85 @@ export default function CatalogManager({
           error instanceof Error
             ? error.message
             : "Không thể tạo dữ liệu.",
+      });
+    } finally {
+      setSaving("");
+    }
+  }
+
+    type EditState = {
+    entity: "programVersion" | "courseVersion" | "offering";
+    id: string;
+    title: string;
+    form: Record<string, string>;
+  };
+
+  const [editing, setEditing] = useState<EditState | null>(null);
+  const editRef = useRef<HTMLDivElement>(null);
+
+  function startEdit(
+    entity: EditState["entity"],
+    item: Item,
+    title: string,
+  ) {
+    const form: Record<string, string> = {
+      status: String(item.status ?? "DRAFT"),
+      description: String(item.description ?? ""),
+    };
+
+    if (entity === "courseVersion") {
+      form.tuitionFee = item.tuitionFee ? String(item.tuitionFee) : "";
+    }
+
+    if (entity === "offering") {
+      form.startDate = String(item.start_date ?? "").slice(0, 10);
+      form.endDate = String(item.end_date ?? "").slice(0, 10);
+      form.maxStudents =
+        item.maxStudents === null || item.maxStudents === undefined
+          ? ""
+          : String(item.maxStudents);
+    }
+
+    setEditing({ entity, id: item.id, title, form });
+    setTimeout(() => {
+      editRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
+  async function saveEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editing) return;
+
+    setSaving("edit");
+    setNotice(null);
+
+    try {
+      const response = await fetch(
+        `/api/catalog/${editing.entity}/${editing.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editing.form),
+        },
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Không thể cập nhật.");
+      }
+
+      setNotice({
+        type: "success",
+        text: result.message || "Cập nhật thành công.",
+      });
+      setEditing(null);
+      await loadData();
+    } catch (error) {
+      setNotice({
+        type: "error",
+        text:
+          error instanceof Error ? error.message : "Không thể cập nhật.",
       });
     } finally {
       setSaving("");
@@ -580,6 +670,109 @@ export default function CatalogManager({
         <NoticeBanner notice={notice} onClose={() => setNotice(null)} />
 
         {loading && <LoadingState text="Đang tải danh mục..." />}
+                {editing && canCreate && (
+                <div ref={editRef}>
+          <FormCard
+            title={`Sửa: ${editing.title}`}
+            description="Chỉ sửa được trạng thái và các thông tin bên dưới. Chọn 'Lưu trữ' để ẩn."
+          >
+            <form className="grid gap-3 sm:grid-cols-2" onSubmit={saveEdit}>
+              <StatusSelect
+                value={editing.form.status}
+                onChange={(v) =>
+                  setEditing({
+                    ...editing,
+                    form: { ...editing.form, status: v },
+                  })
+                }
+              />
+
+              {editing.entity === "courseVersion" && (
+                <TextField
+                  label="Học phí (VND)"
+                  value={editing.form.tuitionFee}
+                  onChange={(v) =>
+                    setEditing({
+                      ...editing,
+                      form: { ...editing.form, tuitionFee: v },
+                    })
+                  }
+                  placeholder="3000000"
+                />
+              )}
+
+              {editing.entity === "offering" && (
+                <>
+                  <TextField
+                    label="Ngày bắt đầu *"
+                    type="date"
+                    required
+                    value={editing.form.startDate}
+                    onChange={(v) =>
+                      setEditing({
+                        ...editing,
+                        form: { ...editing.form, startDate: v },
+                      })
+                    }
+                  />
+                  <TextField
+                    label="Ngày kết thúc *"
+                    type="date"
+                    required
+                    value={editing.form.endDate}
+                    onChange={(v) =>
+                      setEditing({
+                        ...editing,
+                        form: { ...editing.form, endDate: v },
+                      })
+                    }
+                  />
+                  <TextField
+                    label="Sĩ số tối đa"
+                    value={editing.form.maxStudents}
+                    onChange={(v) =>
+                      setEditing({
+                        ...editing,
+                        form: { ...editing.form, maxStudents: v },
+                      })
+                    }
+                  />
+                </>
+              )}
+
+              {editing.entity !== "offering" && (
+                <TextField
+                  label="Mô tả"
+                  value={editing.form.description}
+                  onChange={(v) =>
+                    setEditing({
+                      ...editing,
+                      form: { ...editing.form, description: v },
+                    })
+                  }
+                />
+              )}
+
+              <div className="flex gap-2 sm:col-span-2">
+                <button
+                  type="submit"
+                  disabled={saving === "edit"}
+                  className={buttonClass}
+                >
+                  {saving === "edit" ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditing(null)}
+                >
+                  Hủy
+                </Button>
+              </div>
+            </form>
+          </FormCard>
+          </div>
+        )}
         {!canCreate && (
           <div className="rounded-md border border-blue-300 bg-blue-50 p-4 text-blue-950">
             <p className="font-semibold">Chế độ chỉ xem</p>
@@ -1157,6 +1350,7 @@ export default function CatalogManager({
         />
 
         <DataTable
+          
           title="Phiên bản chương trình"
           headers={["Chương trình", "Phiên bản", "Trạng thái"]}
           rows={data.programVersions.map((x) => [
@@ -1164,6 +1358,7 @@ export default function CatalogManager({
             x.version_no,
             x.status,
           ])}
+          onEdit={canCreate ? (i) => startEdit("programVersion", data.programVersions[i], "Phiên bản chương trình") : undefined}
         />
 
         <DataTable
@@ -1178,6 +1373,7 @@ export default function CatalogManager({
         />
 
         <DataTable
+          
           title="Phiên bản khóa học"
           headers={["Khóa học", "Phiên bản", "Học phí", "Trạng thái"]}
           rows={data.courseVersions.map((x) => [
@@ -1188,6 +1384,7 @@ export default function CatalogManager({
               : "Chưa thiết lập",
             x.status,
           ])}
+          onEdit={canCreate ? (i) => startEdit("courseVersion", data.courseVersions[i], "Phiên bản khóa học") : undefined}
         />
 
         <DataTable
@@ -1210,6 +1407,7 @@ export default function CatalogManager({
             x.max_students as number,
             x.status,
           ])}
+          onEdit={canCreate ? (i) => startEdit("offering", data.offerings[i], "Đợt mở khóa học") : undefined}
         />
       </div>
     </div>
