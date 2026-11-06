@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+# Smart Language Center
 
-First, run the development server:
+Hệ thống quản lý trung tâm ngoại ngữ: tuyển sinh, học viên, ghi danh, lớp học và lịch học, điểm danh, đánh giá, học phí và công nợ, báo cáo, cổng học viên/phụ huynh, trợ lý giảng dạy AI.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Công nghệ
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui
+- Prisma 7 với MySQL/MariaDB
+- Xác thực JWT (jose) lưu trong cookie httpOnly, mã hóa mật khẩu bằng bcryptjs
+- Phân quyền theo vai trò (RBAC) có giới hạn theo chi nhánh và lớp
+- Google Gemini cho các gợi ý AI
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Chạy thử trên máy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Cài Node.js 20 trở lên và MySQL/MariaDB.
+2. Tạo cơ sở dữ liệu và nạp cấu trúc bảng (thư mục `prisma/sql`).
+3. Tạo file `.env` (xem `.env.example`):
 
-## Learn More
+   - `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`: kết nối MySQL/MariaDB
+   - `DATABASE_URL`: chuỗi kết nối dạng `mysql://user:pass@host:3306/ten_db` (chỉ dùng cho lệnh Prisma)
+   - `AUTH_SECRET`: khóa ký JWT (chuỗi dài, ngẫu nhiên)
+   - `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`: cấu hình AI (tùy chọn)
+   - `NEXT_PUBLIC_APP_URL`: địa chỉ của ứng dụng
+4. Cài và chạy:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npm install
+   npx prisma generate
+   npm run dev
+   ```
+5. Nạp dữ liệu mẫu:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   npx tsx scripts/seed-demo.ts
+   npx tsx scripts/seed-bulk.ts small   # small | medium | large, thêm "reset" để xóa dữ liệu demo
+   ```
+6. Tạo file `.env` (xem `.env.example`):
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   - `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`: kết nối MySQL/MariaDB
+   - `DATABASE_URL`: chuỗi kết nối dạng `mysql://user:pass@host:3306/ten_db` (chỉ dùng cho lệnh Prisma)
+   - `AUTH_SECRET`: khóa ký JWT (chuỗi dài, ngẫu nhiên)
+   - `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`: cấu hình AI (tùy chọn)
+   - `NEXT_PUBLIC_APP_URL`: địa chỉ của ứng dụ
 
-## Deploy on Vercel
+## Cấu trúc thư mục
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `app/` trang giao diện và API (`app/api/...`)
+- `components/` thành phần giao diện dùng chung
+- `lib/` xử lý nghiệp vụ, phân quyền, nhật ký hệ thống
+- `prisma/` lược đồ cơ sở dữ liệu
+- `scripts/` script nạp dữ liệu mẫu
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Quy ước
+
+- Mọi API đều kiểm tra quyền bằng `requireApiPermission` và giới hạn theo chi nhánh.
+- Thao tác quan trọng được ghi vào nhật ký hệ thống (`audit_logs`).
